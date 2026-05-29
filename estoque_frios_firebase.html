@@ -235,8 +235,8 @@ tr:hover td{background:var(--bg3);}
   <div class="form-card" style="margin-top:0;">
     <h3>Padrão EAN-13 da sua balança</h3>
     <div style="font-size:12px;color:var(--text2);line-height:1.8;">
-      <span style="color:var(--text);">2</span> + <span style="color:var(--blue);">CCCC</span> (4 dígitos código produto) + <span style="color:var(--green);">VVVVVV</span> (valor total em centavos) + <span style="color:var(--text3);">D</span> (verificador)<br>
-      Ex: <span style="color:var(--text);">2</span><span style="color:var(--blue);">4346</span><span style="color:var(--green);">097184</span><span style="color:var(--text3);">8</span> = Queijo Mussarela, R$ 971,84 ÷ R$ 59,99/kg = <strong style="color:var(--green);">16,200 kg</strong><br>
+      <span style="color:var(--text);">2</span> + <span style="color:var(--blue);">CCCCC</span> (5 dígitos código produto) + <span style="color:var(--green);">VVVVVV</span> (valor total em centavos) + <span style="color:var(--text3);">D</span> (verificador)<br>
+      Ex: <span style="color:var(--text);">2</span><span style="color:var(--blue);">43460</span><span style="color:var(--green);">097184</span><span style="color:var(--text3);">8</span> = Queijo Mussarela, R$ 971,84 ÷ R$ 59,99/kg = <strong style="color:var(--green);">16,200 kg</strong><br>
       <span style="color:var(--yellow);">⚠ O preço/kg precisa estar cadastrado na aba <strong>Preços/kg</strong> para o cálculo funcionar.</span>
     </div>
   </div>
@@ -571,10 +571,14 @@ function parsearUPC(){
   const box=document.getElementById('upc-box');
   if(upc.length<5&&!manual){box.classList.remove('show');return;}
   let codInt='', pesoKg=0, valorReais=0;
-  // Padrão da balança: 2 + 4 dígitos código + 6 dígitos valor em centavos + 1 verificador = 13 dígitos
+  // Padrão da balança: 2 + 5 dígitos código + 6 dígitos valor em centavos + 1 verificador = 13 dígitos
+  // Ex: 2|43460|097184|8 → código 43460, valor R$971,84
   if(upc.length===13 && upc.startsWith('2')){
-    codInt=upc.substring(1,5);
-    valorReais=parseInt(upc.substring(5,11))/100;
+    codInt=upc.substring(1,6);                      // 5 dígitos do código
+    valorReais=parseInt(upc.substring(6,12))/100;   // 6 dígitos do valor ÷ 100
+    // tenta encontrar pelo código de 5 dígitos, se não achar tenta sem o zero à direita
+    var prodTmp=estoque.find(p=>p.codigo===codInt);
+    if(!prodTmp) codInt=codInt.replace(/0+$/,'');   // remove zeros finais: 43460 → 4346
   } else {
     codInt=upc;
   }
@@ -603,8 +607,10 @@ function registrarBaixa(){
   const resp=document.getElementById('baixa-resp').value.trim();
   let codInt='', pesoKg=0, valorReais=0;
   if(upc.length===13 && upc.startsWith('2')){
-    codInt=upc.substring(1,5);
-    valorReais=parseInt(upc.substring(5,11))/100;
+    codInt=upc.substring(1,6);
+    valorReais=parseInt(upc.substring(6,12))/100;
+    var prodTmp=estoque.find(p=>p.codigo===codInt);
+    if(!prodTmp) codInt=codInt.replace(/0+$/,'');
   } else {
     codInt=upc;
   }
