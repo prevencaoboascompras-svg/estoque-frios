@@ -1,9 +1,5 @@
-
 <html><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
 
-<!-- ============================================================
-     FIREBASE — cole aqui as suas credenciais do passo 3
-     ============================================================ -->
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
   import { getDatabase, ref, set, get } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
@@ -34,8 +30,6 @@
     if (typeof carregar === 'function') carregar();
   });
 </script>
-<!-- ============================================================ -->
-
 <style>
 *{box-sizing:border-box;margin:0;padding:0;}
 :root{
@@ -125,229 +119,70 @@ tr:hover td{background:var(--bg3);}
 </div>
 
 <div class="cards" id="summary-cards">
-  <div class="card-m"><div class="label">Produtos cadastrados</div><div class="val val-white" id="s-total">18</div></div>
-  <div class="card-m"><div class="label">Estoque OK</div><div class="val val-green" id="s-ok">1</div></div>
-  <div class="card-m"><div class="label">Estoque baixo / zerado</div><div class="val val-yellow" id="s-low">17</div></div>
+  <div class="card-m"><div class="label">Produtos cadastrados</div><div class="val val-white" id="s-total">0</div></div>
+  <div class="card-m"><div class="label">Estoque OK</div><div class="val val-green" id="s-ok">0</div></div>
+  <div class="card-m"><div class="label">Estoque baixo / zerado</div><div class="val val-yellow" id="s-low">0</div></div>
   <div class="card-m"><div class="label">Validades críticas</div><div class="val val-white" id="s-venc">0</div></div>
 </div>
 
 <div class="tabs">
-  <button class="tab" id="tab-estoque" onclick="switchTab(&#39;estoque&#39;)">⊞ Estoque</button>
-  <button class="tab active" id="tab-entrada" onclick="switchTab(&#39;entrada&#39;)">+ Entrada</button>
+  <button class="tab active" id="tab-estoque" onclick="switchTab(&#39;estoque&#39;)">⊞ Estoque & Cadastro</button>
+  <button class="tab" id="tab-entrada" onclick="switchTab(&#39;entrada&#39;)">+ Entrada</button>
   <button class="tab" id="tab-baixa" onclick="switchTab(&#39;baixa&#39;)">⊟ Baixa UPC</button>
   <button class="tab" id="tab-historico" onclick="switchTab(&#39;historico&#39;)">↺ Histórico</button>
 </div>
 
-<div class="section" id="sec-estoque">
+<div class="section active" id="sec-estoque">
+  <div class="form-card" style="margin-bottom:16px;">
+    <h3>Cadastrar Novo Produto</h3>
+    <div class="frow frow3">
+      <div class="field"><label>Código interno / EAN</label><input type="text" id="add-codigo" placeholder="ex: 80"></div>
+      <div class="field"><label>Nome do Produto</label><input type="text" id="add-nome" placeholder="ex: QUEIJO PRATO KG"></div>
+      <div class="field"><label>Unidade de Medida</label>
+        <select id="add-unidade">
+          <option value="kg">kg (Quilograma)</option>
+          <option value="un">un (Unidade)</option>
+          <option value="pct">pct (Pacote)</option>
+        </select>
+      </div>
+    </div>
+    <div class="frow frow2">
+      <div class="field"><label>Estoque Mínimo Alerta</label><input type="number" id="add-min" value="1.0" step="0.001" min="0"></div>
+      <div class="field"><label>Estoque Inicial Atual</label><input type="number" id="add-saldo" value="0.0" step="0.001" min="0"></div>
+    </div>
+    <button class="btn-primary" onclick="adicionarProduto()">+ Adicionar Produto ao Banco</button>
+  </div>
+
   <div class="tbl-wrap">
   <table>
     <thead><tr>
-      <th style="width:30%">Produto</th>
-      <th style="width:10%">Código</th>
-      <th style="width:13%">Estoque (kg)</th>
+      <th style="width:25%">Produto</th>
+      <th style="width:8%">Código</th>
+      <th style="width:15%">Estoque Atual</th>
       <th style="width:14%">Validade</th>
-      <th style="width:13%">Status</th>
-      <th style="width:20%">Ação</th>
+      <th style="width:10%">Status</th>
+      <th style="width:28%">Ações de Controle</th>
     </tr></thead>
-    <tbody id="tbody-estoque"><tr>
-      <td style="font-weight:600;" title="BACON KG">BACON KG</td>
-      <td style="color:var(--text2);">77</td>
-      <td style="font-weight:600;">0.000 kg</td>
-      <td>—</td>
-      <td><span class="badge b-zero">Zerado</span></td>
-      <td>
-        <button class="btn-sm" onclick="editarValidade(0)">Validade</button>
-        <button class="btn-sm" onclick="editarMin(0)">Mín</button>
-      </td>
-    </tr><tr>
-      <td style="font-weight:600;" title="CALABRESA GROSSA KG">CALABRESA GROSSA KG</td>
-      <td style="color:var(--text2);">78</td>
-      <td style="font-weight:600;">0.000 kg</td>
-      <td>—</td>
-      <td><span class="badge b-zero">Zerado</span></td>
-      <td>
-        <button class="btn-sm" onclick="editarValidade(1)">Validade</button>
-        <button class="btn-sm" onclick="editarMin(1)">Mín</button>
-      </td>
-    </tr><tr>
-      <td style="font-weight:600;" title="PRESUNTO FATIADO">PRESUNTO FATIADO</td>
-      <td style="color:var(--text2);">79</td>
-      <td style="font-weight:600;">9.500 kg</td>
-      <td>10/06/2026</td>
-      <td><span class="badge b-ok">OK</span></td>
-      <td>
-        <button class="btn-sm" onclick="editarValidade(2)">Validade</button>
-        <button class="btn-sm" onclick="editarMin(2)">Mín</button>
-      </td>
-    </tr><tr>
-      <td style="font-weight:600;" title="MORTADELA BOLONHA KG">MORTADELA BOLONHA KG</td>
-      <td style="color:var(--text2);">206</td>
-      <td style="font-weight:600;">0.000 kg</td>
-      <td>—</td>
-      <td><span class="badge b-zero">Zerado</span></td>
-      <td>
-        <button class="btn-sm" onclick="editarValidade(3)">Validade</button>
-        <button class="btn-sm" onclick="editarMin(3)">Mín</button>
-      </td>
-    </tr><tr>
-      <td style="font-weight:600;" title="MORTADELA BOLONHA OURO">MORTADELA BOLONHA OURO</td>
-      <td style="color:var(--text2);">140</td>
-      <td style="font-weight:600;">0.000 kg</td>
-      <td>—</td>
-      <td><span class="badge b-zero">Zerado</span></td>
-      <td>
-        <button class="btn-sm" onclick="editarValidade(4)">Validade</button>
-        <button class="btn-sm" onclick="editarMin(4)">Mín</button>
-      </td>
-    </tr><tr>
-      <td style="font-weight:600;" title="CALABRESA FINA KG">CALABRESA FINA KG</td>
-      <td style="color:var(--text2);">465</td>
-      <td style="font-weight:600;">0.000 kg</td>
-      <td>—</td>
-      <td><span class="badge b-zero">Zerado</span></td>
-      <td>
-        <button class="btn-sm" onclick="editarValidade(5)">Validade</button>
-        <button class="btn-sm" onclick="editarMin(5)">Mín</button>
-      </td>
-    </tr><tr>
-      <td style="font-weight:600;" title="CALABRESA GROSSA FATIADA KG">CALABRESA GROSSA FAT...</td>
-      <td style="color:var(--text2);">690</td>
-      <td style="font-weight:600;">0.000 kg</td>
-      <td>—</td>
-      <td><span class="badge b-zero">Zerado</span></td>
-      <td>
-        <button class="btn-sm" onclick="editarValidade(6)">Validade</button>
-        <button class="btn-sm" onclick="editarMin(6)">Mín</button>
-      </td>
-    </tr><tr>
-      <td style="font-weight:600;" title="QUEIJO MUSSARELA FATIADO">QUEIJO MUSSARELA FAT...</td>
-      <td style="color:var(--text2);">4346</td>
-      <td style="font-weight:600;">0.000 kg</td>
-      <td>—</td>
-      <td><span class="badge b-zero">Zerado</span></td>
-      <td>
-        <button class="btn-sm" onclick="editarValidade(7)">Validade</button>
-        <button class="btn-sm" onclick="editarMin(7)">Mín</button>
-      </td>
-    </tr><tr>
-      <td style="font-weight:600;" title="SALSICHA KG">SALSICHA KG</td>
-      <td style="color:var(--text2);">141</td>
-      <td style="font-weight:600;">0.000 kg</td>
-      <td>—</td>
-      <td><span class="badge b-zero">Zerado</span></td>
-      <td>
-        <button class="btn-sm" onclick="editarValidade(8)">Validade</button>
-        <button class="btn-sm" onclick="editarMin(8)">Mín</button>
-      </td>
-    </tr><tr>
-      <td style="font-weight:600;" title="MORCELA BORRUCIA">MORCELA BORRUCIA</td>
-      <td style="color:var(--text2);">60</td>
-      <td style="font-weight:600;">0.000 kg</td>
-      <td>—</td>
-      <td><span class="badge b-zero">Zerado</span></td>
-      <td>
-        <button class="btn-sm" onclick="editarValidade(9)">Validade</button>
-        <button class="btn-sm" onclick="editarMin(9)">Mín</button>
-      </td>
-    </tr><tr>
-      <td style="font-weight:600;" title="BACON DO SERTAO A VACUO">BACON DO SERTAO A VA...</td>
-      <td style="color:var(--text2);">5130</td>
-      <td style="font-weight:600;">0.000 kg</td>
-      <td>—</td>
-      <td><span class="badge b-zero">Zerado</span></td>
-      <td>
-        <button class="btn-sm" onclick="editarValidade(10)">Validade</button>
-        <button class="btn-sm" onclick="editarMin(10)">Mín</button>
-      </td>
-    </tr><tr>
-      <td style="font-weight:600;" title="CALABRESA FINA PERDIGAO KG">CALABRESA FINA PERDI...</td>
-      <td style="color:var(--text2);">1387</td>
-      <td style="font-weight:600;">0.000 kg</td>
-      <td>—</td>
-      <td><span class="badge b-zero">Zerado</span></td>
-      <td>
-        <button class="btn-sm" onclick="editarValidade(11)">Validade</button>
-        <button class="btn-sm" onclick="editarMin(11)">Mín</button>
-      </td>
-    </tr><tr>
-      <td style="font-weight:600;" title="CALABRESA FINA SANTA CLARA KG">CALABRESA FINA SANTA...</td>
-      <td style="color:var(--text2);">318</td>
-      <td style="font-weight:600;">0.000 kg</td>
-      <td>—</td>
-      <td><span class="badge b-zero">Zerado</span></td>
-      <td>
-        <button class="btn-sm" onclick="editarValidade(12)">Validade</button>
-        <button class="btn-sm" onclick="editarMin(12)">Mín</button>
-      </td>
-    </tr><tr>
-      <td style="font-weight:600;" title="CALABRESA GROSSA SANTA CLARA">CALABRESA GROSSA SAN...</td>
-      <td style="color:var(--text2);">319</td>
-      <td style="font-weight:600;">0.000 kg</td>
-      <td>—</td>
-      <td><span class="badge b-zero">Zerado</span></td>
-      <td>
-        <button class="btn-sm" onclick="editarValidade(13)">Validade</button>
-        <button class="btn-sm" onclick="editarMin(13)">Mín</button>
-      </td>
-    </tr><tr>
-      <td style="font-weight:600;" title="MORCELA CASTRO KG">MORCELA CASTRO KG</td>
-      <td style="color:var(--text2);">7501</td>
-      <td style="font-weight:600;">0.000 kg</td>
-      <td>—</td>
-      <td><span class="badge b-zero">Zerado</span></td>
-      <td>
-        <button class="btn-sm" onclick="editarValidade(14)">Validade</button>
-        <button class="btn-sm" onclick="editarMin(14)">Mín</button>
-      </td>
-    </tr><tr>
-      <td style="font-weight:600;" title="APRESUNTADO FATIADO">APRESUNTADO FATIADO</td>
-      <td style="color:var(--text2);">213</td>
-      <td style="font-weight:600;">0.000 kg</td>
-      <td>—</td>
-      <td><span class="badge b-zero">Zerado</span></td>
-      <td>
-        <button class="btn-sm" onclick="editarValidade(15)">Validade</button>
-        <button class="btn-sm" onclick="editarMin(15)">Mín</button>
-      </td>
-    </tr><tr>
-      <td style="font-weight:600;" title="MORTADELA TUBO MINU">MORTADELA TUBO MINU</td>
-      <td style="color:var(--text2);">311</td>
-      <td style="font-weight:600;">0.000 kg</td>
-      <td>—</td>
-      <td><span class="badge b-zero">Zerado</span></td>
-      <td>
-        <button class="btn-sm" onclick="editarValidade(16)">Validade</button>
-        <button class="btn-sm" onclick="editarMin(16)">Mín</button>
-      </td>
-    </tr><tr>
-      <td style="font-weight:600;" title="MORTADELA COMUM FATIADA">MORTADELA COMUM FATI...</td>
-      <td style="color:var(--text2);">205</td>
-      <td style="font-weight:600;">0.000 kg</td>
-      <td>—</td>
-      <td><span class="badge b-zero">Zerado</span></td>
-      <td>
-        <button class="btn-sm" onclick="editarValidade(17)">Validade</button>
-        <button class="btn-sm" onclick="editarMin(17)">Mín</button>
-      </td>
-    </tr></tbody>
+    <tbody id="tbody-estoque">
+      </tbody>
   </table>
   </div>
 </div>
 
-<div class="section active" id="sec-entrada">
+<div class="section" id="sec-entrada">
   <div class="form-card">
     <h3>Registrar entrada de produto</h3>
-    <div class="msg msg-ok" id="msg-entrada">✓ Entrada de 10.000 kg registrada. Saldo: 10.000 kg</div>
+    <div class="msg msg-ok" id="msg-entrada"></div>
     <div class="frow frow2">
       <div class="field"><label>Produto</label>
-        <select id="ent-produto" onchange="preencherEntrada()"><option value="">Selecione...</option><option value="0">BACON KG</option><option value="1">CALABRESA GROSSA KG</option><option value="2">PRESUNTO FATIADO</option><option value="3">MORTADELA BOLONHA KG</option><option value="4">MORTADELA BOLONHA OURO</option><option value="5">CALABRESA FINA KG</option><option value="6">CALABRESA GROSSA FATIADA KG</option><option value="7">QUEIJO MUSSARELA FATIADO</option><option value="8">SALSICHA KG</option><option value="9">MORCELA BORRUCIA</option><option value="10">BACON DO SERTAO A VACUO</option><option value="11">CALABRESA FINA PERDIGAO KG</option><option value="12">CALABRESA FINA SANTA CLARA KG</option><option value="13">CALABRESA GROSSA SANTA CLARA</option><option value="14">MORCELA CASTRO KG</option><option value="15">APRESUNTADO FATIADO</option><option value="16">MORTADELA TUBO MINU</option><option value="17">MORTADELA COMUM FATIADA</option></select>
+        <select id="ent-produto" onchange="preencherEntrada()"><option value="">Selecione...</option></select>
       </div>
       <div class="field"><label>Código</label>
         <input type="text" id="ent-codigo" readonly="" placeholder="Automático">
       </div>
     </div>
     <div class="frow frow3">
-      <div class="field"><label>Peso recebido (kg)</label>
+      <div class="field"><label>Quantidade / Peso recebido</label>
         <input type="number" id="ent-peso" placeholder="ex: 2.350" step="0.001" min="0">
       </div>
       <div class="field"><label>Validade</label>
@@ -367,21 +202,21 @@ tr:hover td{background:var(--bg3);}
 <div class="section" id="sec-baixa">
   <div class="form-card">
     <h3>Baixa por etiqueta UPC da balança</h3>
-    <div class="msg msg-ok" id="msg-baixa">✓ Baixa de 0.500 kg. Saldo: 9.500 kg</div>
+    <div class="msg msg-ok" id="msg-baixa"></div>
     <p style="font-size:12px;color:var(--text2);margin-bottom:12px;">Digite o código EAN-13 da etiqueta gerada pela balança. O peso é lido automaticamente.</p>
     <div class="frow frow2">
       <div class="field"><label>Código UPC / EAN-13 da etiqueta</label>
         <input type="text" id="baixa-upc" placeholder="ex: 2007700012340" maxlength="18" oninput="parsearUPC()">
       </div>
-      <div class="field"><label>Ou peso manual (kg)</label>
+      <div class="field"><label>Ou peso/quant. manual</label>
         <input type="number" id="baixa-manual" placeholder="Opcional" step="0.001" min="0" oninput="parsearUPC()">
       </div>
     </div>
     <div class="upc-box" id="upc-box">
-      <div class="upc-row"><span>Produto:</span><span id="u-nome">PRESUNTO FATIADO</span></div>
-      <div class="upc-row"><span>Peso da etiqueta:</span><span id="u-peso">0.500 kg</span></div>
-      <div class="upc-row"><span>Estoque atual:</span><span id="u-atual">10.000 kg</span></div>
-      <div class="upc-row"><span>Estoque após baixa:</span><span id="u-apos" style="color:var(--yellow)">9.500 kg</span></div>
+      <div class="upc-row"><span>Produto:</span><span id="u-nome">—</span></div>
+      <div class="upc-row"><span>Peso da etiqueta:</span><span id="u-peso">—</span></div>
+      <div class="upc-row"><span>Estoque atual:</span><span id="u-atual">—</span></div>
+      <div class="upc-row"><span>Estoque após baixa:</span><span id="u-apos" style="color:var(--yellow)">—</span></div>
     </div>
     <div class="frow frow2" style="margin-top:10px;">
       <div class="field"><label>Responsável</label>
@@ -402,33 +237,21 @@ tr:hover td{background:var(--bg3);}
 <div class="section" id="sec-historico">
   <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
     <span style="font-size:13px;font-weight:600;">Movimentações</span>
-    <button class="btn-danger" onclick="limparHistorico()">Limpar histórico</button>
+    <button class="btn-danger" onclick="limparHistorico()">Limpar todo o histórico</button>
   </div>
   <div class="tbl-wrap">
   <table>
     <thead><tr>
       <th style="width:16%">Data/Hora</th>
-      <th style="width:28%">Produto</th>
+      <th style="width:24%">Produto</th>
       <th style="width:10%">Tipo</th>
-      <th style="width:12%">Peso (kg)</th>
-      <th style="width:16%">Saldo após</th>
-      <th style="width:18%">Responsável</th>
+      <th style="width:12%">Qtd/Peso</th>
+      <th style="width:14%">Saldo após</th>
+      <th style="width:14%">Responsável</th>
+      <th style="width:10%">Ação</th>
     </tr></thead>
-    <tbody id="tbody-historico"><tr>
-    <td style="font-size:12px;color:var(--text2);">29/05/2026 11:41</td>
-    <td style="font-weight:600;">PRESUNTO FATIADO</td>
-    <td><span class="badge b-baixa">Baixa</span></td>
-    <td style="font-weight:600;color:var(--yellow);">-0.500</td>
-    <td>9.500 kg</td>
-    <td style="color:var(--text2);">leo</td>
-  </tr><tr>
-    <td style="font-size:12px;color:var(--text2);">29/05/2026 11:40</td>
-    <td style="font-weight:600;">PRESUNTO FATIADO</td>
-    <td><span class="badge b-entry">Entrada</span></td>
-    <td style="font-weight:600;color:var(--green);">+10.000</td>
-    <td>10.000 kg</td>
-    <td style="color:var(--text2);">leo</td>
-  </tr></tbody>
+    <tbody id="tbody-historico">
+      </tbody>
   </table>
   </div>
 </div>
@@ -459,11 +282,11 @@ async function carregar(){
     const snapH=await window._fbGet(window._fbRef(db,'frios_historico'));
     estoque=snapE.exists()?snapE.val():[];
     historico=snapH.exists()?snapH.val():[];
-    if(!estoque.length) estoque=PRODUTOS_BASE.map(p=>({...p,saldo:0,validade:'',min:1.0}));
+    if(!estoque.length) estoque=PRODUTOS_BASE.map(p=>({...p,saldo:0,validade:'',min:1.0,unidade:'kg'}));
     setSaveStatus('Online ✓','#4caf50');
   }catch(e){
     console.error('Firebase erro ao carregar:',e);
-    estoque=PRODUTOS_BASE.map(p=>({...p,saldo:0,validade:'',min:1.0}));
+    estoque=PRODUTOS_BASE.map(p=>({...p,saldo:0,validade:'',min:1.0,unidade:'kg'}));
     setSaveStatus('Offline — verifique as credenciais','#e0a020');
   }
   popularSelect();
@@ -526,15 +349,18 @@ function renderEstoque(){
     else if(p.saldo<p.min)sBadge='<span class="badge b-low">Baixo</span>';
     else sBadge='<span class="badge b-ok">OK</span>';
     const nome=p.nome.length>22?p.nome.substring(0,20)+'...':p.nome;
+    const und=p.unidade||'kg';
     return`<tr>
       <td style="font-weight:600;" title="${p.nome}">${nome}</td>
       <td style="color:var(--text2);">${p.codigo}</td>
-      <td style="font-weight:600;">${p.saldo.toFixed(3)} kg</td>
+      <td style="font-weight:600;">${p.saldo.toFixed(3)} ${und}</td>
       <td>${fmtData(p.validade)}${vBadge}</td>
       <td>${sBadge}</td>
       <td>
         <button class="btn-sm" onclick="editarValidade(${i})">Validade</button>
-        <button class="btn-sm" onclick="editarMin(${i})">Mín</button>
+        <button class="btn-sm" onclick="editarProduto(${i})">Editar</button>
+        <button class="btn-sm" onclick="corrigirSaldo(${i})">Saldo</button>
+        <button class="btn-sm" style="background:var(--red-bg);color:var(--red-text);border-color:#5a2a2a;" onclick="excluirProduto(${i})">Excluir</button>
       </td>
     </tr>`;
   }).join('');
@@ -547,9 +373,81 @@ function editarValidade(i){
   if(pts.length===3){estoque[i].validade=pts[2]+'-'+pts[1]+'-'+pts[0];salvar();renderEstoque();atualizarSummary();}
 }
 
-function editarMin(i){
-  const v=prompt('Estoque mínimo (kg) para '+estoque[i].nome+':',estoque[i].min);
-  if(v!==null&&!isNaN(parseFloat(v))){estoque[i].min=parseFloat(v);salvar();renderEstoque();atualizarSummary();}
+function editarProduto(i){
+  const p=estoque[i];
+  const novoNome=prompt('Editar nome do produto:',p.nome);
+  if(novoNome===null)return;
+  const novoMinStr=prompt('Editar estoque mínimo:',p.min);
+  if(novoMinStr===null)return;
+  const novoMin=parseFloat(novoMinStr);
+  if(isNaN(novoMin))return alert('Estoque mínimo inválido.');
+  const novaUnidade=prompt('Editar unidade (ex: kg, un, pct):',p.unidade||'kg');
+  if(novaUnidade===null)return;
+
+  p.nome=novoNome.trim().toUpperCase()||p.nome;
+  p.min=novoMin;
+  p.unidade=novaUnidade.trim().toLowerCase()||'kg';
+
+  document.getElementById('ent-produto').innerHTML='<option value="">Selecione...</option>';
+  popularSelect();
+  salvar();renderEstoque();atualizarSummary();
+}
+
+function corrigirSaldo(i){
+  const p=estoque[i];
+  const und=p.unidade||'kg';
+  const novoSaldoStr=prompt(`Corrigir saldo de ${p.nome} de ${p.saldo.toFixed(3)} ${und} para:`,p.saldo);
+  if(novoSaldoStr===null)return;
+  const novoSaldo=parseFloat(novoSaldoStr);
+  if(isNaN(novoSaldo))return alert('Saldo informado é inválido.');
+  const resp=prompt('Responsável / Motivo do ajuste manual:','');
+
+  const antigoSaldo=p.saldo;
+  const diff=novoSaldo-antigoSaldo;
+  p.saldo=novoSaldo;
+
+  historico.push({
+    ts:Date.now(),
+    tipo:diff>=0?'entrada':'baixa',
+    codigo:p.codigo,
+    nome:p.nome,
+    peso:Math.abs(diff),
+    saldoApos:p.saldo,
+    resp:(resp?(resp+' (Ajuste)'):'Ajuste manual')
+  });
+
+  salvar();renderEstoque();atualizarSummary();renderHistorico();
+}
+
+function adicionarProduto(){
+  const cod=document.getElementById('add-codigo').value.trim();
+  const nome=document.getElementById('add-nome').value.trim().toUpperCase();
+  const und=document.getElementById('add-unidade').value;
+  const min=parseFloat(document.getElementById('add-min').value)||0;
+  const saldo=parseFloat(document.getElementById('add-saldo').value)||0;
+
+  if(!cod||!nome)return alert('Código e Nome do produto são obrigatórios.');
+  if(estoque.some(p=>p.codigo===cod))return alert('Já existe um produto com esse código no sistema.');
+
+  estoque.push({codigo:cod,nome,unidade:und,min,saldo,validade:''});
+
+  document.getElementById('add-codigo').value='';
+  document.getElementById('add-nome').value='';
+  document.getElementById('add-min').value='1.0';
+  document.getElementById('add-saldo').value='0.0';
+
+  document.getElementById('ent-produto').innerHTML='<option value="">Selecione...</option>';
+  popularSelect();
+  salvar();renderEstoque();atualizarSummary();
+}
+
+function excluirProduto(i){
+  if(confirm(`Tem certeza que deseja REMOVER o produto ${estoque[i].nome} permanentemente do banco de dados?`)){
+    estoque.splice(i,1);
+    document.getElementById('ent-produto').innerHTML='<option value="">Selecione...</option>';
+    popularSelect();
+    salvar();renderEstoque();atualizarSummary();
+  }
 }
 
 function atualizarSummary(){
@@ -592,11 +490,12 @@ function registrarEntrada(){
   if(idx==='')return mostrarMsg('msg-entrada','msg-err','Selecione o produto.');
   if(!peso||peso<=0)return mostrarMsg('msg-entrada','msg-err','Informe um peso válido.');
   const i=parseInt(idx);
+  const und=estoque[i].unidade||'kg';
   estoque[i].saldo=Math.round((estoque[i].saldo+peso)*1000)/1000;
   if(val)estoque[i].validade=val;
   historico.push({ts:Date.now(),tipo:'entrada',codigo:estoque[i].codigo,nome:estoque[i].nome,peso,saldoApos:estoque[i].saldo,resp});
   salvar();renderEstoque();atualizarSummary();renderHistorico();
-  mostrarMsg('msg-entrada','msg-ok','✓ Entrada de '+peso.toFixed(3)+' kg registrada. Saldo: '+estoque[i].saldo.toFixed(3)+' kg');
+  mostrarMsg('msg-entrada','msg-ok','✓ Entrada de '+peso.toFixed(3)+' '+und+' registrada. Saldo: '+estoque[i].saldo.toFixed(3)+' '+und);
   document.getElementById('ent-peso').value='';
   document.getElementById('ent-validade').value='';
 }
@@ -612,10 +511,11 @@ function parsearUPC(){
   }
   const pesoKg=pesoG>0?pesoG/1000:manual;
   const prod=estoque.find(p=>p.codigo===codInt||p.codigo===upc);
+  const und=prod?(prod.unidade||'kg'):'kg';
   document.getElementById('u-nome').textContent=prod?prod.nome:'Não encontrado (cód: '+codInt+')';
-  document.getElementById('u-peso').textContent=pesoKg>0?pesoKg.toFixed(3)+' kg':'— (informe manualmente)';
-  document.getElementById('u-atual').textContent=prod?prod.saldo.toFixed(3)+' kg':'—';
-  document.getElementById('u-apos').textContent=prod&&pesoKg>0?Math.max(0,prod.saldo-pesoKg).toFixed(3)+' kg':'—';
+  document.getElementById('u-peso').textContent=pesoKg>0?pesoKg.toFixed(3)+' '+und:'— (informe manualmente)';
+  document.getElementById('u-atual').textContent=prod?prod.saldo.toFixed(3)+' '+und:'—';
+  document.getElementById('u-apos').textContent=prod&&pesoKg>0?Math.max(0,prod.saldo-pesoKg).toFixed(3)+' '+und:'—';
   box.classList.add('show');
 }
 
@@ -632,10 +532,11 @@ function registrarBaixa(){
   if(!pesoKg||pesoKg<=0)return mostrarMsg('msg-baixa','msg-err','Peso não encontrado. Use o campo manual.');
   const idx=estoque.findIndex(p=>p.codigo===codInt||p.codigo===upc);
   if(idx===-1)return mostrarMsg('msg-baixa','msg-err','Produto não encontrado. Código: '+codInt);
+  const und=estoque[idx].unidade||'kg';
   estoque[idx].saldo=Math.max(0,Math.round((estoque[idx].saldo-pesoKg)*1000)/1000);
   historico.push({ts:Date.now(),tipo:'baixa',codigo:estoque[idx].codigo,nome:estoque[idx].nome,peso:pesoKg,saldoApos:estoque[idx].saldo,resp});
   salvar();renderEstoque();atualizarSummary();renderHistorico();
-  mostrarMsg('msg-baixa','msg-ok','✓ Baixa de '+pesoKg.toFixed(3)+' kg. Saldo: '+estoque[idx].saldo.toFixed(3)+' kg');
+  mostrarMsg('msg-baixa','msg-ok','✓ Baixa de '+pesoKg.toFixed(3)+' '+und+'. Saldo: '+estoque[idx].saldo.toFixed(3)+' '+und);
   document.getElementById('baixa-upc').value='';
   document.getElementById('baixa-manual').value='';
   document.getElementById('upc-box').classList.remove('show');
@@ -644,34 +545,49 @@ function registrarBaixa(){
 function renderHistorico(){
   const tb=document.getElementById('tbody-historico');
   const rows=[...historico].reverse();
-  if(!rows.length){tb.innerHTML='<tr><td colspan="6" style="text-align:center;color:var(--text3);padding:24px 0;">Nenhuma movimentação</td></tr>';return;}
-  tb.innerHTML=rows.map(r=>`<tr>
-    <td style="font-size:12px;color:var(--text2);">${fmtHora(r.ts)}</td>
-    <td style="font-weight:600;">${r.nome}</td>
-    <td><span class="badge ${r.tipo==='entrada'?'b-entry':'b-baixa'}">${r.tipo==='entrada'?'Entrada':'Baixa'}</span></td>
-    <td style="font-weight:600;color:${r.tipo==='entrada'?'var(--green)':'var(--yellow)'};">${r.tipo==='entrada'?'+':'-'}${Math.abs(r.peso).toFixed(3)}</td>
-    <td>${r.saldoApos.toFixed(3)} kg</td>
-    <td style="color:var(--text2);">${r.resp||'—'}</td>
-  </tr>`).join('');
+  if(!rows.length){tb.innerHTML='<tr><td colspan="7" style="text-align:center;color:var(--text3);padding:24px 0;">Nenhuma movimentação</td></tr>';return;}
+  tb.innerHTML=rows.map((r,i)=>{
+    const idxReal=historico.length-1-i;
+    const prod=estoque.find(p=>p.codigo===r.codigo);
+    const und=prod?(prod.unidade||'kg'):'kg';
+    return `<tr>
+      <td style="font-size:12px;color:var(--text2);">${fmtHora(r.ts)}</td>
+      <td style="font-weight:600;">${r.nome}</td>
+      <td><span class="badge ${r.tipo==='entrada'?'b-entry':'b-baixa'}">${r.tipo==='entrada'?'Entrada':'Baixa'}</span></td>
+      <td style="font-weight:600;color:${r.tipo==='entrada'?'var(--green)':'var(--yellow)'};">${r.tipo==='entrada'?'+':'-'}${Math.abs(r.peso).toFixed(3)}</td>
+      <td>${r.saldoApos.toFixed(3)} ${und}</td>
+      <td style="color:var(--text2);">${r.resp||'—'}</td>
+      <td><button class="btn-sm" style="background:var(--red-bg);color:var(--red-text);border-color:#5a2a2a;margin:0;" onclick="excluirItemHistorico(${idxReal})">Apagar</button></td>
+    </tr>`;
+  }).join('');
+}
+
+function excluirItemHistorico(idx){
+  if(confirm('Tem certeza que deseja apagar permanentemente esse registro do histórico? (Nota: Isso não altera o saldo atual do estoque)')){
+    historico.splice(idx,1);
+    salvar();renderHistorico();
+  }
 }
 
 function limparHistorico(){
-  if(confirm('Limpar todo o histórico de movimentações?')){historico=[];salvar();renderHistorico();}
+  if(confirm('Limpar TODO o histórico de movimentações permanentemente?')){historico=[];salvar();renderHistorico();}
 }
 
 function exportarRelatorio(){
   let txt='RELATÓRIO DE ESTOQUE DE FRIOS\n'+new Date().toLocaleDateString('pt-BR')+'\n\n';
-  txt+='Produto|Código|Estoque (kg)|Validade|Status\n';
+  txt+='Produto|Código|Estoque|Unidade|Validade|Status\n';
   estoque.forEach(p=>{
     const sv=statusVal(p.validade);
     const st=p.saldo<=0?'Zerado':p.saldo<p.min?'Baixo':'OK';
     const vObs=sv==='vencido'?' (VENCIDO)':sv==='vencendo'?' (VENCE EM BREVE)':'';
-    txt+=p.nome+'|'+p.codigo+'|'+p.saldo.toFixed(3)+' kg|'+fmtData(p.validade)+vObs+'|'+st+'\n';
+    txt+=p.nome+'|'+p.codigo+'|'+p.saldo.toFixed(3)+'|'+(p.unidade||'kg')+'|'+fmtData(p.validade)+vObs+'|'+st+'\n';
   });
   txt+='\nHISTÓRICO DE MOVIMENTAÇÕES\n\n';
-  txt+='Data/Hora|Produto|Tipo|Peso (kg)|Saldo após|Responsável\n';
+  txt+='Data/Hora|Produto|Tipo|Quantidade|Saldo após|Responsável\n';
   [...historico].reverse().forEach(r=>{
-    txt+=fmtHora(r.ts)+'|'+r.nome+'|'+(r.tipo==='entrada'?'Entrada':'Baixa')+'|'+(r.tipo==='entrada'?'+':'-')+Math.abs(r.peso).toFixed(3)+'|'+r.saldoApos.toFixed(3)+' kg|'+(r.resp||'—')+'\n';
+    const prod=estoque.find(p=>p.codigo===r.codigo);
+    const und=prod?(prod.unidade||'kg'):'kg';
+    txt+=fmtHora(r.ts)+'|'+r.nome+'|'+(r.tipo==='entrada'?'Entrada':'Baixa')+'|'+(r.tipo==='entrada'?'+':'-')+Math.abs(r.peso).toFixed(3)+' '+und+'|'+r.saldoApos.toFixed(3)+' '+und+'|'+(r.resp||'—')+'\n';
   });
   const blob=new Blob([txt],{type:'text/plain;charset=utf-8'});
   const a=document.createElement('a');
