@@ -18,17 +18,23 @@
   const app = initializeApp(firebaseConfig);
   const db  = getDatabase(app);
 
-  // Expõe para o script principal (não-module)
+  // Expõe funções como wrappers para garantir contexto correto
   window._fbDb  = db;
-  window._fbRef = ref;
-  window._fbSet = set;
-  window._fbGet = get;
+  window._fbRef = (database, path) => ref(database, path);
+  window._fbSet = (reference, value) => set(reference, value);
+  window._fbGet = (reference) => get(reference);
   window._fbReady = true;
 
-  // Dispara carregamento assim que o Firebase estiver pronto
-  window.addEventListener('DOMContentLoaded', () => {
-    if (typeof carregar === 'function') carregar();
-  });
+  // Chama carregar() assim que Firebase estiver pronto
+  function tentarCarregar(){
+    if(typeof carregar === 'function') carregar();
+    else setTimeout(tentarCarregar, 50);
+  }
+  if(document.readyState === 'loading'){
+    window.addEventListener('DOMContentLoaded', tentarCarregar);
+  } else {
+    tentarCarregar();
+  }
 </script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0;}
@@ -45,9 +51,9 @@
 body{background:var(--bg);color:var(--text);font-family:'Segoe UI',system-ui,sans-serif;font-size:14px;}
 .app{padding:16px;}
 .cards{display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:var(--border);border:1px solid var(--border);border-radius:var(--radius);margin-bottom:18px;overflow:hidden;}
-.card-m{background:var(--bg2);padding:14px 18px;}
+.card-m{background:var(--bg2);padding:20px 24px;}
 .card-m .label{font-size:12px;color:var(--text2);margin-bottom:6px;}
-.card-m .val{font-size:26px;font-weight:600;}
+.card-m .val{font-size:32px;font-weight:600;}
 .val-white{color:var(--text);}
 .val-green{color:var(--green);}
 .val-yellow{color:var(--yellow);}
@@ -98,38 +104,39 @@ tr:hover td{background:var(--bg3);}
 .status-dot{display:inline-block;width:7px;height:7px;border-radius:50%;margin-right:6px;}
 .dot-ok{background:var(--green);}
 .dot-save{background:#888;}
-.header-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:18px;}
+.header-row{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:20px;padding-top:4px;}
 .header-title{font-size:17px;font-weight:600;}
 .header-sub{font-size:12px;color:var(--text2);margin-top:2px;}
 .save-status{font-size:11px;color:var(--text3);display:flex;align-items:center;gap:5px;}
 </style>
 
 </head><body><div class="app">
-<h2 class="sr-only">Sistema de controle de estoque de frios</h2>
 
 <div class="header-row">
   <div>
-    <div class="header-title">Estoque de Frios</div>
-    <div class="header-sub" id="data-hora">sexta-feira, 29/05/2026 — 11:44</div>
+    <div style="font-size:20px;font-weight:700;color:var(--text);line-height:1.2;">Sistema de controle de estoque de frios</div>
+    <div style="font-size:15px;font-weight:600;color:var(--text);margin-top:2px;">Estoque de Frios</div>
+    <div style="font-size:12px;color:var(--text2);margin-top:1px;" id="data-hora"></div>
   </div>
   <div style="display:flex;align-items:center;gap:12px;">
-    <div class="save-status" id="save-status"><span class="status-dot dot-save" id="save-dot" style="background: rgb(224, 82, 82);"></span><span id="save-txt">Erro ao salvar</span></div>
+    <div class="save-status" id="save-status"><span class="status-dot" id="save-dot" style="background:#888;"></span><span id="save-txt">Conectando...</span></div>
     <button class="btn-primary" onclick="exportarRelatorio()">↗ Exportar relatório</button>
   </div>
 </div>
 
-<div class="cards" id="summary-cards">
-  <div class="card-m"><div class="label">Produtos cadastrados</div><div class="val val-white" id="s-total">0</div></div>
-  <div class="card-m"><div class="label">Estoque OK</div><div class="val val-green" id="s-ok">0</div></div>
-  <div class="card-m"><div class="label">Estoque baixo / zerado</div><div class="val val-yellow" id="s-low">0</div></div>
-  <div class="card-m"><div class="label">Validades críticas</div><div class="val val-white" id="s-venc">0</div></div>
+<div class="cards" id="summary-cards" style="grid-template-columns:repeat(4,1fr);margin-bottom:20px;">
+  <div class="card-m"><div class="label">Produtos cadastrados</div><div class="val val-white" id="s-total">—</div></div>
+  <div class="card-m"><div class="label">Estoque OK</div><div class="val val-green" id="s-ok">—</div></div>
+  <div class="card-m"><div class="label">Estoque baixo / zerado</div><div class="val val-yellow" id="s-low">—</div></div>
+  <div class="card-m"><div class="label">Validades críticas</div><div class="val val-white" id="s-venc">—</div></div>
 </div>
 
 <div class="tabs">
-  <button class="tab active" id="tab-estoque" onclick="switchTab(&#39;estoque&#39;)">⊞ Estoque & Cadastro</button>
-  <button class="tab" id="tab-entrada" onclick="switchTab(&#39;entrada&#39;)">+ Entrada</button>
-  <button class="tab" id="tab-baixa" onclick="switchTab(&#39;baixa&#39;)">⊟ Baixa UPC</button>
-  <button class="tab" id="tab-historico" onclick="switchTab(&#39;historico&#39;)">↺ Histórico</button>
+  <button class="tab active" id="tab-estoque" onclick="switchTab('estoque')">⊞ Estoque & Cadastro</button>
+  <button class="tab" id="tab-entrada" onclick="switchTab('entrada')">+ Entrada</button>
+  <button class="tab" id="tab-baixa" onclick="switchTab('baixa')">⊟ Baixa UPC</button>
+  <button class="tab" id="tab-precos" onclick="switchTab('precos')">$ Preços/kg</button>
+  <button class="tab" id="tab-historico" onclick="switchTab('historico')">↺ Histórico</button>
 </div>
 
 <div class="section active" id="sec-estoque">
@@ -226,10 +233,29 @@ tr:hover td{background:var(--bg3);}
     <button class="btn-primary" onclick="registrarBaixa()">Confirmar baixa</button>
   </div>
   <div class="form-card" style="margin-top:0;">
-    <h3>Padrão EAN-13 interno (balança)</h3>
+    <h3>Padrão EAN-13 da sua balança</h3>
     <div style="font-size:12px;color:var(--text2);line-height:1.8;">
-      <span style="color:var(--text);">02</span> + <span style="color:var(--blue);">CCCCC</span> (código produto) + <span style="color:var(--green);">PPPPP</span> (peso em gramas) + <span style="color:var(--text3);">D</span> (dígito verificador)<br>
-      Ex: <span style="color:var(--text);">02</span><span style="color:var(--blue);">00077</span><span style="color:var(--green);">01234</span><span style="color:var(--text3);">5</span> = Bacon KG, 1,234 kg
+      <span style="color:var(--text);">2</span> + <span style="color:var(--blue);">CCCC</span> (4 dígitos código produto) + <span style="color:var(--green);">VVVVVV</span> (valor total em centavos) + <span style="color:var(--text3);">D</span> (verificador)<br>
+      Ex: <span style="color:var(--text);">2</span><span style="color:var(--blue);">4346</span><span style="color:var(--green);">097184</span><span style="color:var(--text3);">8</span> = Queijo Mussarela, R$ 971,84 ÷ R$ 59,99/kg = <strong style="color:var(--green);">16,200 kg</strong><br>
+      <span style="color:var(--yellow);">⚠ O preço/kg precisa estar cadastrado na aba <strong>Preços/kg</strong> para o cálculo funcionar.</span>
+    </div>
+  </div>
+</div>
+
+<div class="section" id="sec-precos">
+  <div class="form-card">
+    <h3>Preço por kg — usado para calcular o peso a partir do valor da etiqueta UPC</h3>
+    <p style="font-size:12px;color:var(--text2);margin-bottom:14px;">Quando a balança grava o <strong style="color:var(--text);">valor total</strong> no código EAN, o sistema divide pelo preço/kg para descobrir o peso. Mantenha os preços atualizados sempre que houver reajuste.</p>
+    <div class="tbl-wrap">
+    <table>
+      <thead><tr>
+        <th style="width:35%">Produto</th>
+        <th style="width:12%">Código</th>
+        <th style="width:20%">Preço/kg atual</th>
+        <th style="width:33%">Alterar</th>
+      </tr></thead>
+      <tbody id="tbody-precos"></tbody>
+    </table>
     </div>
   </div>
 </div>
@@ -259,12 +285,12 @@ tr:hover td{background:var(--bg3);}
 
 <script>
 const PRODUTOS_BASE=[
-  {codigo:'77',nome:'BACON KG'},{codigo:'78',nome:'CALABRESA GROSSA KG'},{codigo:'79',nome:'PRESUNTO FATIADO'},
-  {codigo:'206',nome:'MORTADELA BOLONHA KG'},{codigo:'140',nome:'MORTADELA BOLONHA OURO'},{codigo:'465',nome:'CALABRESA FINA KG'},
-  {codigo:'690',nome:'CALABRESA GROSSA FATIADA KG'},{codigo:'4346',nome:'QUEIJO MUSSARELA FATIADO'},{codigo:'141',nome:'SALSICHA KG'},
-  {codigo:'60',nome:'MORCELA BORRUCIA'},{codigo:'5130',nome:'BACON DO SERTAO A VACUO'},{codigo:'1387',nome:'CALABRESA FINA PERDIGAO KG'},
-  {codigo:'318',nome:'CALABRESA FINA SANTA CLARA KG'},{codigo:'319',nome:'CALABRESA GROSSA SANTA CLARA'},{codigo:'7501',nome:'MORCELA CASTRO KG'},
-  {codigo:'213',nome:'APRESUNTADO FATIADO'},{codigo:'311',nome:'MORTADELA TUBO MINU'},{codigo:'205',nome:'MORTADELA COMUM FATIADA'}
+  {codigo:'79', nome:'PRESUNTO FATIADO',        precoKg:34.99, saldo:10.300, validade:'2026-07-13', min:1.0, unidade:'kg'},
+  {codigo:'206',nome:'MORTADELA BOLONHA KG',    precoKg:33.99, saldo:0.000,  validade:'',           min:1.0, unidade:'kg'},
+  {codigo:'140',nome:'MORTADELA BOLONHA OURO',  precoKg:36.99, saldo:19.500, validade:'2026-06-10', min:1.0, unidade:'kg'},
+  {codigo:'4346',nome:'QUEIJO MUSSARELA FATIADO',precoKg:59.99, saldo:112.900,validade:'2026-08-08', min:1.0, unidade:'kg'},
+  {codigo:'141',nome:'SALSICHA KG',             precoKg:14.99, saldo:33.600, validade:'2026-08-12', min:1.0, unidade:'kg'},
+  {codigo:'205',nome:'MORTADELA COMUM FATIADA', precoKg:14.99, saldo:0.000,  validade:'',           min:1.0, unidade:'kg'},
 ];
 
 let estoque=[], historico=[], salvando=false;
@@ -282,15 +308,22 @@ async function carregar(){
     const snapH=await window._fbGet(window._fbRef(db,'frios_historico'));
     estoque=snapE.exists()?snapE.val():[];
     historico=snapH.exists()?snapH.val():[];
-    if(!estoque.length) estoque=PRODUTOS_BASE.map(p=>({...p,saldo:0,validade:'',min:1.0,unidade:'kg'}));
+    if(!estoque.length){
+      // Firebase vazio — usa base com saldos/validades iniciais e já salva
+      estoque=PRODUTOS_BASE.map(p=>({...p}));
+      await window._fbSet(window._fbRef(db,'frios_estoque'),estoque);
+    } else {
+      estoque=estoque.map(p=>{if(p.precoKg===undefined){const base=PRODUTOS_BASE.find(b=>b.codigo===p.codigo);p.precoKg=base?base.precoKg:0;}return p;});
+    }
     setSaveStatus('Online ✓','#4caf50');
   }catch(e){
     console.error('Firebase erro ao carregar:',e);
-    estoque=PRODUTOS_BASE.map(p=>({...p,saldo:0,validade:'',min:1.0,unidade:'kg'}));
+    estoque=PRODUTOS_BASE.map(p=>({...p}));
     setSaveStatus('Offline — verifique as credenciais','#e0a020');
   }
   popularSelect();
   renderEstoque();
+  renderPrecos();
   renderHistorico();
   atualizarSummary();
 }
@@ -419,6 +452,38 @@ function corrigirSaldo(i){
   salvar();renderEstoque();atualizarSummary();renderHistorico();
 }
 
+function renderPrecos(){
+  const tb=document.getElementById('tbody-precos');
+  if(!tb)return;
+  tb.innerHTML=estoque.map((p,i)=>{
+    const preco=p.precoKg||0;
+    const semPreco=preco===0;
+    return`<tr>
+      <td style="font-weight:600;" title="${p.nome}">${p.nome}</td>
+      <td style="color:var(--text2);">${p.codigo}</td>
+      <td style="font-weight:600;color:${semPreco?'var(--red)':'var(--green)'};">${semPreco?'<span class="badge b-zero">Não cadastrado</span>':'R$ '+preco.toFixed(2)+'/kg'}</td>
+      <td>
+        <div style="display:flex;gap:6px;align-items:center;">
+          <input type="number" id="preco-inp-${i}" placeholder="ex: 29.90" step="0.01" min="0" value="${preco>0?preco:''}"
+            style="width:110px;background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:5px 8px;border-radius:4px;font-size:13px;">
+          <button class="btn-primary" style="padding:5px 14px;font-size:12px;" onclick="salvarPreco(${i})">Salvar</button>
+        </div>
+      </td>
+    </tr>`;
+  }).join('');
+}
+
+function salvarPreco(i){
+  const inp=document.getElementById('preco-inp-'+i);
+  const val=parseFloat(inp.value);
+  if(isNaN(val)||val<0)return alert('Preço inválido.');
+  estoque[i].precoKg=val;
+  salvar();renderPrecos();
+  // feedback visual
+  inp.style.borderColor='var(--green)';
+  setTimeout(()=>{inp.style.borderColor='var(--border)';},1500);
+}
+
 function adicionarProduto(){
   const cod=document.getElementById('add-codigo').value.trim();
   const nome=document.getElementById('add-nome').value.trim().toUpperCase();
@@ -429,7 +494,7 @@ function adicionarProduto(){
   if(!cod||!nome)return alert('Código e Nome do produto são obrigatórios.');
   if(estoque.some(p=>p.codigo===cod))return alert('Já existe um produto com esse código no sistema.');
 
-  estoque.push({codigo:cod,nome,unidade:und,min,saldo,validade:''});
+  estoque.push({codigo:cod,nome,unidade:und,min,saldo,validade:'',precoKg:0});
 
   document.getElementById('add-codigo').value='';
   document.getElementById('add-nome').value='';
@@ -438,7 +503,7 @@ function adicionarProduto(){
 
   document.getElementById('ent-produto').innerHTML='<option value="">Selecione...</option>';
   popularSelect();
-  salvar();renderEstoque();atualizarSummary();
+  salvar();renderEstoque();renderPrecos();atualizarSummary();
 }
 
 function excluirProduto(i){
@@ -505,17 +570,30 @@ function parsearUPC(){
   const manual=parseFloat(document.getElementById('baixa-manual').value)||0;
   const box=document.getElementById('upc-box');
   if(upc.length<5&&!manual){box.classList.remove('show');return;}
-  let codInt=upc,pesoG=0;
-  if(upc.length===13&&['02','20','21','22','23','29'].some(p=>upc.startsWith(p))){
-    codInt=upc.substring(2,7);pesoG=parseInt(upc.substring(7,12));
+  let codInt='', pesoKg=0, valorReais=0;
+  // Padrão da balança: 2 + 4 dígitos código + 6 dígitos valor em centavos + 1 verificador = 13 dígitos
+  if(upc.length===13 && upc.startsWith('2')){
+    codInt=upc.substring(1,5);
+    valorReais=parseInt(upc.substring(5,11))/100;
+  } else {
+    codInt=upc;
   }
-  const pesoKg=pesoG>0?pesoG/1000:manual;
   const prod=estoque.find(p=>p.codigo===codInt||p.codigo===upc);
+  if(prod && valorReais>0 && prod.precoKg>0){
+    pesoKg=Math.round((valorReais/prod.precoKg)*1000)/1000;
+  }
+  const usar=pesoKg>0?pesoKg:manual;
   const und=prod?(prod.unidade||'kg'):'kg';
   document.getElementById('u-nome').textContent=prod?prod.nome:'Não encontrado (cód: '+codInt+')';
-  document.getElementById('u-peso').textContent=pesoKg>0?pesoKg.toFixed(3)+' '+und:'— (informe manualmente)';
+  if(prod && valorReais>0 && prod.precoKg>0){
+    document.getElementById('u-peso').textContent=usar.toFixed(3)+' '+und+' (R$ '+valorReais.toFixed(2)+' ÷ R$ '+prod.precoKg.toFixed(2)+'/kg)';
+  } else if(prod && valorReais>0 && (!prod.precoKg||prod.precoKg===0)){
+    document.getElementById('u-peso').textContent='Preço/kg não cadastrado — informe manualmente';
+  } else {
+    document.getElementById('u-peso').textContent=usar>0?usar.toFixed(3)+' '+und:'— (informe manualmente)';
+  }
   document.getElementById('u-atual').textContent=prod?prod.saldo.toFixed(3)+' '+und:'—';
-  document.getElementById('u-apos').textContent=prod&&pesoKg>0?Math.max(0,prod.saldo-pesoKg).toFixed(3)+' '+und:'—';
+  document.getElementById('u-apos').textContent=prod&&usar>0?Math.max(0,prod.saldo-usar).toFixed(3)+' '+und:'—';
   box.classList.add('show');
 }
 
@@ -523,15 +601,22 @@ function registrarBaixa(){
   const upc=document.getElementById('baixa-upc').value.replace(/\D/g,'');
   const manual=parseFloat(document.getElementById('baixa-manual').value)||0;
   const resp=document.getElementById('baixa-resp').value.trim();
-  let codInt=upc,pesoG=0;
-  if(upc.length===13&&['02','20','21','22','23','29'].some(p=>upc.startsWith(p))){
-    codInt=upc.substring(2,7);pesoG=parseInt(upc.substring(7,12));
+  let codInt='', pesoKg=0, valorReais=0;
+  if(upc.length===13 && upc.startsWith('2')){
+    codInt=upc.substring(1,5);
+    valorReais=parseInt(upc.substring(5,11))/100;
+  } else {
+    codInt=upc;
   }
-  const pesoKg=pesoG>0?pesoG/1000:manual;
-  if(!upc)return mostrarMsg('msg-baixa','msg-err','Informe o código UPC.');
-  if(!pesoKg||pesoKg<=0)return mostrarMsg('msg-baixa','msg-err','Peso não encontrado. Use o campo manual.');
   const idx=estoque.findIndex(p=>p.codigo===codInt||p.codigo===upc);
+  if(!upc)return mostrarMsg('msg-baixa','msg-err','Informe o código UPC.');
   if(idx===-1)return mostrarMsg('msg-baixa','msg-err','Produto não encontrado. Código: '+codInt);
+  if(valorReais>0 && estoque[idx].precoKg>0){
+    pesoKg=Math.round((valorReais/estoque[idx].precoKg)*1000)/1000;
+  } else {
+    pesoKg=manual;
+  }
+  if(!pesoKg||pesoKg<=0)return mostrarMsg('msg-baixa','msg-err','Peso não encontrado. Cadastre o preço/kg ou use o campo manual.');
   const und=estoque[idx].unidade||'kg';
   estoque[idx].saldo=Math.max(0,Math.round((estoque[idx].saldo-pesoKg)*1000)/1000);
   historico.push({ts:Date.now(),tipo:'baixa',codigo:estoque[idx].codigo,nome:estoque[idx].nome,peso:pesoKg,saldoApos:estoque[idx].saldo,resp});
@@ -600,7 +685,9 @@ function atualizarRelogio(){
   document.getElementById('data-hora').textContent=new Date().toLocaleDateString('pt-BR',{weekday:'long',day:'2-digit',month:'2-digit',year:'numeric'})+' — '+new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
 }
 
-// carregar() é chamado pelo módulo Firebase assim que estiver pronto (ver <head>)
+// carregar() é chamado pelo módulo Firebase (ver <head>)
+// Fallback: se Firebase demorar mais de 3s, carrega offline
+setTimeout(()=>{ if(!estoque.length) carregar(); }, 3000);
 atualizarRelogio();
 setInterval(atualizarRelogio,60000);
 </script>
