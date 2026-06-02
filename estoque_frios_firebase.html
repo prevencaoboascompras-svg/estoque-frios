@@ -1,4 +1,3 @@
-<!DOCTYPE html>
 <html><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
 
 <script type="module">
@@ -202,7 +201,7 @@ tr:hover td{background:var(--bg3);}
     </div>
     <div style="display:flex;align-items:center;gap:12px;margin-top:4px;">
       <button class="btn-primary" onclick="registrarEntrada()">Confirmar entrada</button>
-      <span style="font-size:12px;color:var(--text3);">O saldo será somado ao estoque atual</span>
+      <span style="font-size:12px;color:var(--text3);">Se a validade for nova, um novo lote independente será criado.</span>
     </div>
   </div>
 </div>
@@ -223,7 +222,7 @@ tr:hover td{background:var(--bg3);}
     <div class="upc-box" id="upc-box">
       <div class="upc-row"><span>Produto:</span><span id="u-nome">—</span></div>
       <div class="upc-row"><span>Peso da etiqueta:</span><span id="u-peso">—</span></div>
-      <div class="upc-row"><span>Estoque atual:</span><span id="u-atual">—</span></div>
+      <div class="upc-row"><span>Estoque atual total (lotes):</span><span id="u-atual">—</span></div>
       <div class="upc-row"><span>Estoque após baixa:</span><span id="u-apos" style="color:var(--yellow)">—</span></div>
     </div>
     <div class="frow frow2" style="margin-top:10px;">
@@ -308,22 +307,8 @@ async function carregar(){
     const db=window._fbDb;
     const snapE=await window._fbGet(window._fbRef(db,'frios_estoque'));
     const snapH=await window._fbGet(window._fbRef(db,'frios_historico'));
-    let dadosE=snapE.exists()?snapE.val():[];
-    let dadosH=snapH.exists()?snapH.val():[];
-    
-    // CORREÇÃO CRÍTICA DO FIREBASE: Converte estruturas que o Firebase retorna como objetos de volta em arrays sequenciais robustos
-    if (dadosE && !Array.isArray(dadosE)) {
-      estoque = Object.keys(dadosE).sort((a,b)=>a-b).map(k=>dadosE[k]);
-    } else {
-      estoque = dadosE || [];
-    }
-    
-    if (dadosH && !Array.isArray(dadosH)) {
-      historico = Object.keys(dadosH).sort((a,b)=>a-b).map(k=>dadosH[k]);
-    } else {
-      historico = dadosH || [];
-    }
-
+    estoque=snapE.exists()?snapE.val():[];
+    historico=snapH.exists()?snapH.val():[];
     if(!estoque.length){
       // Firebase vazio — usa base com saldos/validades iniciais e já salva
       estoque=PRODUTOS_BASE.map(p=>({...p}));
@@ -416,8 +401,7 @@ function renderEstoque(){
 }
 
 function editarValidade(i){
-  const v=prompt('Validade para '+estoque[i].nome+'
-(formato: dd/mm/aaaa)',fmtData(estoque[i].validade));
+  const v=prompt('Validade para '+estoque[i].nome+'\n(formato: dd/mm/aaaa)',fmtData(estoque[i].validade));
   if(!v)return;
   const pts=v.split('/');
   if(pts.length===3){estoque[i].validade=pts[2]+'-'+pts[1]+'-'+pts[0];salvar();renderEstoque();atualizarSummary();}
@@ -434,9 +418,15 @@ function editarProduto(i){
   const novaUnidade=prompt('Editar unidade (ex: kg, un, pct):',p.unidade||'kg');
   if(novaUnidade===null)return;
 
-  p.nome=novoNome.trim().toUpperCase()||p.nome;
-  p.min=novoMin;
-  p.unidade=novaUnidade.trim().toLowerCase()||'kg';
+  const codProd = p.codigo;
+  // Sincroniza o novo nome/mínimo/unidade em todos os lotes com o mesmo código
+  estoque.forEach(item => {
+    if(item.codigo === codProd){
+      item.nome=novoNome.trim().toUpperCase()||item.nome;
+      item.min=novoMin;
+      item.unidade=novaUnidade.trim().toLowerCase()||'kg';
+    }
+  });
 
   popularSelect();
   salvar();renderEstoque();atualizarSummary();
@@ -445,7 +435,7 @@ function editarProduto(i){
 function corrigirSaldo(i){
   const p=estoque[i];
   const und=p.unidade||'kg';
-  const novoSaldoStr=prompt(`Corrigir saldo de ${p.nome} de ${p.saldo.toFixed(3)} ${und} para:`,p.saldo);
+  const novoSaldoStr=prompt(`Corrigir saldo de ${p.nome} (Lote: ${fmtData(p.validade)}) de ${p.saldo.toFixed(3)} ${und} para:`,p.saldo);
   if(novoSaldoStr===null)return;
   const novoSaldo=parseFloat(novoSaldoStr);
   if(isNaN(novoSaldo))return alert('Saldo informado é inválido.');
@@ -455,13 +445,15 @@ function corrigirSaldo(i){
   const diff=novoSaldo-antigoSaldo;
   p.saldo=novoSaldo;
 
+  const totalConsolidado = estoque.filter(item => item.codigo === p.codigo).reduce((sum, item) => sum + item.saldo, 0);
+
   historico.push({
     ts:Date.now(),
     tipo:diff>=0?'entrada':'baixa',
     codigo:p.codigo,
-    nome:p.nome,
+    nome:p.nome + (p.validade ? ' (LOTE '+fmtData(p.validade)+')' : ''),
     peso:Math.abs(diff),
-    saldoApos:p.saldo,
+    saldoApos:totalConsolidado,
     resp:(resp?(resp+' (Ajuste)'):'Ajuste manual')
   });
 
@@ -471,29 +463,42 @@ function corrigirSaldo(i){
 function renderPrecos(){
   const tb=document.getElementById('tbody-precos');
   if(!tb)return;
-  tb.innerHTML=estoque.map((p,i)=>{
-    const preco=p.precoKg||0;
-    const semPreco=preco===0;
-    return`<tr>
-      <td style="font-weight:600;" title="${p.nome}">${p.nome}</td>
-      <td style="color:var(--text2);">${p.codigo}</td>
-      <td style="font-weight:600;color:${semPreco?'var(--red)':'var(--green)'};">${semPreco?'<span class="badge b-zero">Não cadastrado</span>':'R$ '+preco.toFixed(2)+'/kg'}</td>
-      <td>
-        <div style="display:flex;gap:6px;align-items:center;">
-          <input type="number" id="preco-inp-${i}" placeholder="ex: 29.90" step="0.01" min="0" value="${preco>0?preco:''}"
-            style="width:110px;background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:5px 8px;border-radius:4px;font-size:13px;">
-          <button class="btn-primary" style="padding:5px 14px;font-size:12px;" onclick="salvarPreco(${i})">Salvar</button>
-        </div>
-      </td>
-    </tr>`;
-  }).join('');
+  const vistos = new Set();
+  let html = '';
+  estoque.forEach((p,i)=>{
+    // Agrupa e mostra apenas um item por código na aba de edição de preços
+    if(!vistos.has(p.codigo)){
+      vistos.add(p.codigo);
+      const preco=p.precoKg||0;
+      const semPreco=preco===0;
+      html += `<tr>
+        <td style="font-weight:600;" title="${p.nome}">${p.nome}</td>
+        <td style="color:var(--text2);">${p.codigo}</td>
+        <td style="font-weight:600;color:${semPreco?'var(--red)':'var(--green)'};">${semPreco?'<span class="badge b-zero">Não cadastrado</span>':'R$ '+preco.toFixed(2)+'/kg'}</td>
+        <td>
+          <div style="display:flex;gap:6px;align-items:center;">
+            <input type="number" id="preco-inp-${i}" placeholder="ex: 29.90" step="0.01" min="0" value="${preco>0?preco:''}"
+              style="width:110px;background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:5px 8px;border-radius:4px;font-size:13px;">
+            <button class="btn-primary" style="padding:5px 14px;font-size:12px;" onclick="salvarPreco(${i})">Salvar</button>
+          </div>
+        </td>
+      </tr>`;
+    }
+  });
+  tb.innerHTML = html;
 }
 
 function salvarPreco(i){
   const inp=document.getElementById('preco-inp-'+i);
   const val=parseFloat(inp.value);
   if(isNaN(val)||val<0)return alert('Preço inválido.');
-  estoque[i].precoKg=val;
+  
+  const codProd = estoque[i].codigo;
+  // Aplica o preço atualizado para todos os lotes ativos daquele mesmo produto
+  estoque.forEach(p => {
+    if(p.codigo === codProd) p.precoKg=val;
+  });
+
   salvar();renderPrecos();
   // feedback visual
   inp.style.borderColor='var(--green)';
@@ -522,7 +527,7 @@ function adicionarProduto(){
 }
 
 function excluirProduto(i){
-  if(confirm(`Tem certeza que deseja REMOVER o produto ${estoque[i].nome} permanentemente do banco de dados?`)){
+  if(confirm(`Tem certeza que deseja REMOVER este lote de ${estoque[i].nome} permanentemente?`)){
     estoque.splice(i,1);
     popularSelect();
     salvar();renderEstoque();atualizarSummary();
@@ -544,11 +549,15 @@ function atualizarSummary(){
 
 function popularSelect(){
   const sel=document.getElementById('ent-produto');
-  if(!sel)return;
   sel.innerHTML='<option value="">Selecione...</option>';
+  const vistos=new Set();
   estoque.forEach((p,i)=>{
-    const o=document.createElement('option');
-    o.value=i;o.textContent=p.nome;sel.appendChild(o);
+    // Garante que o seletor de entrada mostre apenas uma vez cada nome de produto
+    if(!vistos.has(p.codigo)){
+      vistos.add(p.codigo);
+      const o=document.createElement('option');
+      o.value=i;o.textContent=p.nome;sel.appendChild(o);
+    }
   });
 }
 
@@ -571,12 +580,41 @@ function registrarEntrada(){
   if(idx==='')return mostrarMsg('msg-entrada','msg-err','Selecione o produto.');
   if(!peso||peso<=0)return mostrarMsg('msg-entrada','msg-err','Informe um peso válido.');
   const i=parseInt(idx);
-  const und=estoque[i].unidade||'kg';
-  estoque[i].saldo=Math.round((estoque[i].saldo+peso)*1000)/1000;
-  if(val)estoque[i].validade=val;
-  historico.push({ts:Date.now(),tipo:'entrada',codigo:estoque[i].codigo,nome:estoque[i].nome,peso,saldoApos:estoque[i].saldo,resp});
-  salvar();renderEstoque();atualizarSummary();renderHistorico();
-  mostrarMsg('msg-entrada','msg-ok','✓ Entrada de '+peso.toFixed(3)+' '+und+' registrada. Saldo: '+estoque[i].saldo.toFixed(3)+' '+und);
+  const baseProd=estoque[i];
+  const und=baseProd.unidade||'kg';
+
+  // Verifica se já existe um lote com o MESMO código e a MESMA validade exata
+  let loteExistente = estoque.find(p => p.codigo === baseProd.codigo && p.validade === val);
+
+  if (loteExistente) {
+    loteExistente.saldo = Math.round((loteExistente.saldo + peso) * 1000) / 1000;
+  } else {
+    // Se a validade for diferente e a linha atual já possuir estoque, gera um novo lote (nova linha)
+    if (baseProd.saldo > 0 && val && baseProd.validade !== val) {
+      estoque.push({
+        codigo: baseProd.codigo,
+        nome: baseProd.nome,
+        unidade: baseProd.unidade || 'kg',
+        min: baseProd.min || 1.0,
+        precoKg: baseProd.precoKg || 0,
+        saldo: peso,
+        validade: val
+      });
+    } else {
+      // Se a linha atual estiver zerada ou sem validade, reaproveita a linha existente
+      baseProd.saldo = Math.round((baseProd.saldo + peso) * 1000) / 1000;
+      if (val) baseProd.validade = val;
+    }
+  }
+
+  // Calcula o total consolidado global de todos os lotes juntos para registrar no histórico
+  const totalConsolidado = estoque.filter(p => p.codigo === baseProd.codigo).reduce((sum, p) => sum + p.saldo, 0);
+
+  historico.push({ts:Date.now(),tipo:'entrada',codigo:baseProd.codigo,nome:baseProd.nome,peso,saldoApos:totalConsolidado,resp});
+  
+  popularSelect();
+  salvar();renderEstoque();atualizarSummary();renderHistorico();renderPrecos();
+  mostrarMsg('msg-entrada','msg-ok','✓ Entrada de '+peso.toFixed(3)+' '+und+' registrada.');
   document.getElementById('ent-peso').value='';
   document.getElementById('ent-validade').value='';
 }
@@ -585,18 +623,15 @@ function parsearUPC(){
   const upc=document.getElementById('baixa-upc').value.replace(/\D/g,'');
   const manual=parseFloat(document.getElementById('baixa-manual').value)||0;
   const box=document.getElementById('upc-box');
-  if(upc.length<2&&!manual){box.classList.remove('show');return;}
+  if(upc.length<5&&!manual){box.classList.remove('show');return;}
   let codInt='', pesoKg=0, valorReais=0;
-  // Padrão real da balança: 2 + 4 dígitos código (zeros à esquerda) + 0 fixo + 6 dígitos valor + 1 verificador = 13 dígitos
   if(upc.length===13 && upc.startsWith('2')){
-    codInt=parseInt(upc.substring(1,5)).toString(); // 4 dígitos, remove zeros à esquerda para busca flexível
-    valorReais=parseInt(upc.substring(6,12))/100;   // posição 6-12: 6 dígitos do valor
+    codInt=parseInt(upc.substring(1,5)).toString();
+    valorReais=parseInt(upc.substring(6,12))/100;
   } else {
     codInt=upc;
   }
-  
-  // CORREÇÃO DE BUSCA: Permite localizar produtos mesmo se cadastrados com ou sem zeros à esquerda (ex: 140 ou 0140)
-  const prod=estoque.find(p=>p.codigo===codInt||p.codigo===upc||parseInt(p.codigo).toString()===codInt);
+  const prod=estoque.find(p=>p.codigo===codInt||p.codigo===upc);
   if(prod && valorReais>0 && prod.precoKg>0){
     pesoKg=Math.round((valorReais/prod.precoKg)*1000)/1000;
   }
@@ -610,8 +645,11 @@ function parsearUPC(){
   } else {
     document.getElementById('u-peso').textContent=usar>0?usar.toFixed(3)+' '+und:'— (informe manualmente)';
   }
-  document.getElementById('u-atual').textContent=prod?prod.saldo.toFixed(3)+' '+und:'—';
-  document.getElementById('u-apos').textContent=prod&&usar>0?Math.max(0,prod.saldo-usar).toFixed(3)+' '+und:'—';
+  
+  // Mostra a soma consolidada de todos os lotes na simulação de baixa
+  const saldoTotal = prod ? estoque.filter(p=>p.codigo===prod.codigo).reduce((sum,p)=>sum+p.saldo,0) : 0;
+  document.getElementById('u-atual').textContent=prod?saldoTotal.toFixed(3)+' '+und:'—';
+  document.getElementById('u-apos').textContent=prod&&usar>0?Math.max(0,saldoTotal-usar).toFixed(3)+' '+und:'—';
   box.classList.add('show');
 }
 
@@ -626,22 +664,52 @@ function registrarBaixa(){
   } else {
     codInt=upc;
   }
-  
-  // CORREÇÃO DE BUSCA: Permite localizar produtos mesmo se cadastrados com ou sem zeros à esquerda (ex: 140 ou 0140)
-  const idx=estoque.findIndex(p=>p.codigo===codInt||p.codigo===upc||parseInt(p.codigo).toString()===codInt);
   if(!upc)return mostrarMsg('msg-baixa','msg-err','Informe o código UPC.');
-  if(idx===-1)return mostrarMsg('msg-baixa','msg-err','Produto não encontrado. Código: '+codInt);
-  if(valorReais>0 && estoque[idx].precoKg>0){
-    pesoKg=Math.round((valorReais/estoque[idx].precoKg)*1000)/1000;
+  
+  // Obtém todos os lotes que possuem o código correspondente
+  let lotes = estoque.filter(p => p.codigo === codInt || p.codigo === upc);
+  if(lotes.length === 0)return mostrarMsg('msg-baixa','msg-err','Produto não encontrado. Código: '+codInt);
+  
+  if(valorReais>0 && lotes[0].precoKg>0){
+    pesoKg=Math.round((valorReais/lotes[0].precoKg)*1000)/1000;
   } else {
     pesoKg=manual;
   }
   if(!pesoKg||pesoKg<=0)return mostrarMsg('msg-baixa','msg-err','Peso não encontrado. Cadastre o preço/kg ou use o campo manual.');
-  const und=estoque[idx].unidade||'kg';
-  estoque[idx].saldo=Math.max(0,Math.round((estoque[idx].saldo-pesoKg)*1000)/1000);
-  historico.push({ts:Date.now(),tipo:'baixa',codigo:estoque[idx].codigo,nome:estoque[idx].nome,peso:pesoKg,saldoApos:estoque[idx].saldo,resp});
+  
+  const und=lotes[0].unidade||'kg';
+  const codProd=lotes[0].codigo;
+  const nomeProd=lotes[0].nome;
+
+  // Ordenação PEPS / FEFO: Separa lotes com validade e ordena os que vencem primeiro à frente
+  let lotesComValidade = lotes.filter(l => l.validade);
+  let lotesSemValidade = lotes.filter(l => !l.validade);
+  
+  lotesComValidade.sort((a, b) => new Date(a.validade + 'T00:00:00') - new Date(b.validade + 'T00:00:00'));
+  let lotesOrdenados = [...lotesComValidade, ...lotesSemValidade];
+
+  let pesoFaltante = pesoKg;
+
+  // Vai debitando lote por lote sequencialmente
+  for (let lote of lotesOrdenados) {
+    if (pesoFaltante <= 0) break;
+    if (lote.saldo <= 0) continue;
+
+    let aBaixar = Math.min(lote.saldo, pesoFaltante);
+    lote.saldo = Math.round((lote.saldo - aBaixar) * 1000) / 1000;
+    pesoFaltante = Math.round((pesoFaltante - aBaixar) * 1000) / 1000;
+  }
+
+  // Se o estoque global não for o suficiente e ainda faltar peso, negativa o lote mais velho
+  if (pesoFaltante > 0) {
+    lotesOrdenados[0].saldo = Math.round((lotesOrdenados[0].saldo - pesoFaltante) * 1000) / 1000;
+  }
+
+  const totalConsolidado = estoque.filter(p => p.codigo === codProd).reduce((sum, p) => sum + p.saldo, 0);
+  historico.push({ts:Date.now(),tipo:'baixa',codigo:codProd,nome:nomeProd,peso:pesoKg,saldoApos:totalConsolidado,resp});
+  
   salvar();renderEstoque();atualizarSummary();renderHistorico();
-  mostrarMsg('msg-baixa','msg-ok','✓ Baixa de '+pesoKg.toFixed(3)+' '+und+'. Saldo: '+estoque[idx].saldo.toFixed(3)+' '+und);
+  mostrarMsg('msg-baixa','msg-ok','✓ Baixa de '+pesoKg.toFixed(3)+' '+und+'. Saldo total: '+totalConsolidado.toFixed(3)+' '+und);
   document.getElementById('baixa-upc').value='';
   document.getElementById('baixa-manual').value='';
   document.getElementById('upc-box').classList.remove('show');
@@ -706,6 +774,7 @@ function atualizarRelogio(){
 }
 
 // carregar() é chamado pelo módulo Firebase (ver <head>)
+// Fallback: se Firebase demorar mais de 3s, carrega offline
 setTimeout(()=>{ if(!estoque.length) carregar(); }, 3000);
 atualizarRelogio();
 setInterval(atualizarRelogio,60000);
