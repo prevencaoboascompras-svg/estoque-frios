@@ -2,7 +2,7 @@
 
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-  import { getDatabase, ref, set, get } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
+  import { getDatabase, ref, set, get, onValue } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
 
   const firebaseConfig = {
     apiKey:            "AIzaSyD9y6v_1XkJz2StRHKCD2CtOPqlmHKjHko",
@@ -23,6 +23,7 @@
   window._fbRef = (database, path) => ref(database, path);
   window._fbSet = (reference, value) => set(reference, value);
   window._fbGet = (reference) => get(reference);
+  window._fbOnValue = (reference, callback, cancelCallback) => onValue(reference, callback, cancelCallback);
   window._fbReady = true;
 
   // Chama carregar() assim que Firebase estiver pronto
@@ -301,32 +302,57 @@ function setSaveStatus(txt,cor){
   document.getElementById('save-dot').style.background=cor;
 }
 
-async function carregar(){
-  setSaveStatus('Carregando...','#888');
+function carregar(){
+  setSaveStatus('Conectando ao Firebase...','#888');
   try{
-    const db=window._fbDb;
-    const snapE=await window._fbGet(window._fbRef(db,'frios_estoque'));
-    const snapH=await window._fbGet(window._fbRef(db,'frios_historico'));
-    estoque=snapE.exists()?snapE.val():[];
-    historico=snapH.exists()?snapH.val():[];
-    if(!estoque.length){
-      // Firebase vazio — usa base com saldos/validades iniciais e já salva
-      estoque=PRODUTOS_BASE.map(p=>({...p}));
-      await window._fbSet(window._fbRef(db,'frios_estoque'),estoque);
-    } else {
-      estoque=estoque.map(p=>{if(p.precoKg===undefined){const base=PRODUTOS_BASE.find(b=>b.codigo===p.codigo);p.precoKg=base?base.precoKg:0;}return p;});
-    }
-    setSaveStatus('Online ✓','#4caf50');
-  }catch(e){
-    console.error('Firebase erro ao carregar:',e);
-    estoque=PRODUTOS_BASE.map(p=>({...p}));
-    setSaveStatus('Offline — verifique as credenciais','#e0a020');
+    const db = window._fbDb;
+    
+    // Escuta o estoque em tempo real (Sincronização Automática)
+    window._fbOnValue(window._fbRef(db, 'frios_estoque'), (snapshot) => {
+      if (snapshot.exists()) {
+        estoque = snapshot.val();
+        // Garante a integridade dos campos obrigatórios
+        estoque = estoque.map(p => {
+          if (p.precoKg === undefined) {
+            const base = PRODUTOS_BASE.find(b => b.codigo === p.codigo);
+            p.precoKg = base ? base.precoKg : 0;
+          }
+          return p;
+        });
+      } else {
+        // Se o banco estiver totalmente vazio, inicializa com os produtos padrão
+        estoque = PRODUTOS_BASE.map(p => ({...p}));
+        window._fbSet(window._fbRef(db, 'frios_estoque'), estoque);
+      }
+      
+      popularSelect();
+      renderEstoque();
+      renderPrecos();
+      atualizarSummary();
+      setSaveStatus('Online ✓', '#4caf50');
+    }, (error) => {
+      console.error('Erro no listener de estoque:', error);
+      setSaveStatus('Erro de conexão', '#e05252');
+    });
+
+    // Escuta o histórico de movimentações em tempo real
+    window._fbOnValue(window._fbRef(db, 'frios_historico'), (snapshot) => {
+      historico = snapshot.exists() ? snapshot.val() : [];
+      renderHistorico();
+    }, (error) => {
+      console.error('Erro no listener de histórico:', error);
+    });
+
+  } catch(e) {
+    console.error('Erro geral no Firebase:', e);
+    estoque = PRODUTOS_BASE.map(p => ({...p}));
+    setSaveStatus('Offline — erro crítico', '#e0a020');
+    popularSelect();
+    renderEstoque();
+    renderPrecos();
+    renderHistorico();
+    atualizarSummary();
   }
-  popularSelect();
-  renderEstoque();
-  renderPrecos();
-  renderHistorico();
-  atualizarSummary();
 }
 
 async function salvar(){
@@ -774,8 +800,7 @@ function atualizarRelogio(){
 }
 
 // carregar() é chamado pelo módulo Firebase (ver <head>)
-// Fallback: se Firebase demorar mais de 3s, carrega offline
-setTimeout(()=>{ if(!estoque.length) carregar(); }, 3000);
+// Fallback offline de 3s removido para evitar sobrescrita destrutiva de dados
 atualizarRelogio();
 setInterval(atualizarRelogio,60000);
 </script>
