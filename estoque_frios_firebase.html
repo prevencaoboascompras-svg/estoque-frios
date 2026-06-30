@@ -3,7 +3,7 @@
 <script>
   // ===== CONFIGURAÇÃO: Google Apps Script (planilha como banco de dados) =====
   // Cole aqui a URL do seu Web App publicado (Implantar > Nova implantação > App da Web)
-  const SHEETS_API_URL = "https://script.google.com/macros/s/AKfycbyZx1TQ46O8BmdZH7ZxO4fh8Prrc8rDXsq47gcPPDG1EWnnoVlvkfYhM4-8CIIAGceW/exec";
+  const SHEETS_API_URL = "COLE_AQUI_A_URL_DO_SEU_APPS_SCRIPT";
 
   // Chama carregar() assim que a página estiver pronta
   function tentarCarregar(){
@@ -15,6 +15,75 @@
   } else {
     tentarCarregar();
   }
+</script>
+
+<script>
+  // ===== LOGIN (hash SHA-256 — a senha em texto puro nunca fica salva no código) =====
+  const USUARIOS_HASH = {
+    'Leonardo': '06c117bb812639e8f80c10b64953df8b099fd534b2fcae74f49f735b93fedba4',
+    'Taiti':    '36d11eae17888531788f2b5e6ad6130f7f60da4f6076ced7f973cdf51f16eb5f',
+    'Wagner':   '7d3ca4a4cc367aa11f38e2ad017ed96c1e2a8d00b59a982ab2b4e32d3b98b946'
+  };
+  const LOGIN_STORAGE_KEY = 'frios_login_usuario';
+  let usuarioSelecionado = null;
+
+  // Acesso seguro ao storage (alguns navegadores/Edge bloqueiam sessionStorage em certos contextos)
+  function storageGet(key){ try{ return sessionStorage.getItem(key); }catch(e){ return window['_mem_'+key] || null; } }
+  function storageSet(key,val){ try{ sessionStorage.setItem(key,val); }catch(e){ window['_mem_'+key] = val; } }
+
+  async function sha256(texto){
+    const buffer = new TextEncoder().encode(texto);
+    const hashBuffer = await crypto.subtle.digest('SHA-256', buffer);
+    return Array.from(new Uint8Array(hashBuffer)).map(b => b.toString(16).padStart(2,'0')).join('');
+  }
+
+  function liberarAcesso(nome){
+    document.getElementById('login-overlay').style.display = 'none';
+    document.getElementById('app-conteudo').style.display = 'block';
+  }
+
+  function selecionarUsuario(nome){
+    usuarioSelecionado = nome;
+    document.getElementById('login-avatars').style.display = 'none';
+    document.getElementById('login-step1-sub').style.display = 'none';
+    document.getElementById('login-senha-usuario').textContent = nome;
+    document.getElementById('login-senha-erro').textContent = '';
+    const input = document.getElementById('login-senha-input');
+    input.value = '';
+    document.getElementById('login-senha-box').classList.add('show');
+    setTimeout(() => input.focus(), 50);
+  }
+
+  function voltarLogin(){
+    usuarioSelecionado = null;
+    document.getElementById('login-senha-box').classList.remove('show');
+    document.getElementById('login-avatars').style.display = 'flex';
+    document.getElementById('login-step1-sub').style.display = 'block';
+  }
+
+  async function validarSenha(){
+    if(!usuarioSelecionado) return;
+    const senha = document.getElementById('login-senha-input').value;
+    const erroEl = document.getElementById('login-senha-erro');
+    if(!senha){ erroEl.textContent = 'Digite a senha.'; return; }
+
+    const hashDigitado = await sha256(senha);
+    if(hashDigitado === USUARIOS_HASH[usuarioSelecionado]){
+      storageSet(LOGIN_STORAGE_KEY, usuarioSelecionado);
+      liberarAcesso(usuarioSelecionado);
+    } else {
+      erroEl.textContent = 'Senha incorreta.';
+      document.getElementById('login-senha-input').value = '';
+    }
+  }
+
+  // Já logado nesta sessão do navegador? Pula direto pro sistema
+  (function verificarLoginExistente(){
+    const usuarioSalvo = storageGet(LOGIN_STORAGE_KEY);
+    if(usuarioSalvo && USUARIOS_HASH[usuarioSalvo]){
+      liberarAcesso(usuarioSalvo);
+    }
+  })();
 </script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0;}
@@ -88,9 +157,74 @@ tr:hover td{background:var(--bg3);}
 .header-title{font-size:17px;font-weight:600;}
 .header-sub{font-size:12px;color:var(--text2);margin-top:2px;}
 .save-status{font-size:11px;color:var(--text3);display:flex;align-items:center;gap:5px;}
+
+/* ===== LOGIN ===== */
+.login-overlay{position:fixed;inset:0;background:radial-gradient(circle at 50% 30%,#241414 0%,#181010 60%,var(--bg) 100%);display:flex;align-items:center;justify-content:center;z-index:1000;}
+.login-card{background:#1c1c1c;border:1px solid var(--border);border-radius:14px;padding:40px 48px;width:380px;max-width:90vw;text-align:center;box-shadow:0 20px 60px rgba(0,0,0,.5);}
+.login-icon{font-size:34px;margin-bottom:14px;}
+.login-eyebrow{font-size:11px;letter-spacing:.12em;color:var(--text2);font-weight:600;margin-bottom:6px;}
+.login-title{font-size:21px;font-weight:700;color:var(--text);margin-bottom:6px;}
+.login-sub{font-size:13px;color:var(--text2);margin-bottom:24px;}
+.login-avatars{display:flex;justify-content:center;gap:22px;margin-bottom:8px;}
+.login-avatar{cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:8px;}
+.login-avatar-circle{width:56px;height:56px;border-radius:50%;background:linear-gradient(160deg,#e05252,#a82020);color:#fff;font-size:22px;font-weight:700;display:flex;align-items:center;justify-content:center;transition:transform .15s;}
+.login-avatar:hover .login-avatar-circle{transform:scale(1.08);}
+.login-avatar-nome{font-size:12px;color:var(--text2);}
+.login-senha-box{display:none;margin-top:6px;}
+.login-senha-box.show{display:block;}
+.login-senha-usuario{font-size:14px;font-weight:600;color:var(--text);margin-bottom:14px;}
+.login-senha-input{width:100%;background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:10px 12px;border-radius:6px;font-size:14px;text-align:center;letter-spacing:.1em;}
+.login-senha-input:focus{outline:none;border-color:#a82020;}
+.login-senha-erro{color:var(--red-text);font-size:12px;min-height:16px;margin-top:8px;}
+.login-senha-botoes{display:flex;gap:10px;margin-top:6px;}
+.login-btn-voltar{flex:1;background:var(--bg3);border:1px solid var(--border);color:var(--text2);padding:9px;border-radius:6px;cursor:pointer;font-size:13px;}
+.login-btn-voltar:hover{background:var(--bg4);}
+.login-btn-entrar{flex:2;background:linear-gradient(160deg,#e05252,#a82020);border:none;color:#fff;padding:9px;border-radius:6px;cursor:pointer;font-size:13px;font-weight:600;}
+.login-btn-entrar:hover{filter:brightness(1.1);}
+.login-footer{font-size:11px;color:var(--text3);margin-top:26px;}
+.app-conteudo-protegido{display:none;}
 </style>
 
-</head><body><div class="app">
+</head><body>
+
+<!-- ===== TELA DE LOGIN ===== -->
+<div id="login-overlay" class="login-overlay">
+  <div class="login-card">
+    <div class="login-icon">🛒</div>
+    <div class="login-eyebrow">ESCUDO PADARIA</div>
+    <div class="login-title">Sistema de Controle de Estoque de Frios</div>
+    <div class="login-sub" id="login-step1-sub">Quem está acessando?</div>
+
+    <div id="login-avatars" class="login-avatars">
+      <div class="login-avatar" data-user="Leonardo" onclick="selecionarUsuario('Leonardo')">
+        <div class="login-avatar-circle">L</div>
+        <div class="login-avatar-nome">Leonardo</div>
+      </div>
+      <div class="login-avatar" data-user="Taiti" onclick="selecionarUsuario('Taiti')">
+        <div class="login-avatar-circle">T</div>
+        <div class="login-avatar-nome">Taiti</div>
+      </div>
+      <div class="login-avatar" data-user="Wagner" onclick="selecionarUsuario('Wagner')">
+        <div class="login-avatar-circle">W</div>
+        <div class="login-avatar-nome">Wagner</div>
+      </div>
+    </div>
+
+    <div id="login-senha-box" class="login-senha-box">
+      <div class="login-senha-usuario" id="login-senha-usuario"></div>
+      <input type="password" id="login-senha-input" class="login-senha-input" placeholder="Senha" autocomplete="off" onkeydown="if(event.key==='Enter')validarSenha()">
+      <div id="login-senha-erro" class="login-senha-erro"></div>
+      <div class="login-senha-botoes">
+        <button class="login-btn-voltar" onclick="voltarLogin()">‹ Voltar</button>
+        <button class="login-btn-entrar" onclick="validarSenha()">Entrar</button>
+      </div>
+    </div>
+
+    <div class="login-footer">Acesso exclusivo para gestores autorizados</div>
+  </div>
+</div>
+
+<div id="app-conteudo" class="app-conteudo-protegido"><div class="app">
 
 <div class="header-row">
   <div>
@@ -261,6 +395,7 @@ tr:hover td{background:var(--bg3);}
       </tbody>
   </table>
   </div>
+</div>
 </div>
 </div>
 
