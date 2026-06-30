@@ -1,32 +1,11 @@
 <html><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
 
-<script type="module">
-  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-  import { getDatabase, ref, set, get, onValue } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
+<script>
+  // ===== CONFIGURAÇÃO: Google Apps Script (planilha como banco de dados) =====
+  // Cole aqui a URL do seu Web App publicado (Implantar > Nova implantação > App da Web)
+  const SHEETS_API_URL = "COLE_AQUI_A_URL_DO_SEU_APPS_SCRIPT";
 
-  const firebaseConfig = {
-    apiKey:            "AIzaSyD9y6v_1XkJz2StRHKCD2CtOPqlmHKjHko",
-    authDomain:        "escudo-padaria.firebaseapp.com",
-    databaseURL:       "https://escudo-padaria-default-rtdb.firebaseio.com",
-    projectId:         "escudo-padaria",
-    storageBucket:     "escudo-padaria.firebasestorage.app",
-    messagingSenderId: "334958289778",
-    appId:             "1:334958289778:web:32fdee1ffc309d67ddb3eb",
-    measurementId:     "G-NC2TX0BC7C"
-  };
-
-  const app = initializeApp(firebaseConfig);
-  const db  = getDatabase(app);
-
-  // Expõe funções como wrappers para garantir contexto correto
-  window._fbDb  = db;
-  window._fbRef = (database, path) => ref(database, path);
-  window._fbSet = (reference, value) => set(reference, value);
-  window._fbGet = (reference) => get(reference);
-  window._fbOnValue = (reference, callback, cancelCallback) => onValue(reference, callback, cancelCallback);
-  window._fbReady = true;
-
-  // Chama carregar() assim que Firebase estiver pronto
+  // Chama carregar() assim que a página estiver pronta
   function tentarCarregar(){
     if(typeof carregar === 'function') carregar();
     else setTimeout(tentarCarregar, 50);
@@ -302,57 +281,60 @@ function setSaveStatus(txt,cor){
   document.getElementById('save-dot').style.background=cor;
 }
 
+let pollingInterval = null;
+
 function carregar(){
-  setSaveStatus('Conectando ao Firebase...','#888');
-  try{
-    const db = window._fbDb;
-    
-    // Escuta o estoque em tempo real (Sincronização Automática)
-    window._fbOnValue(window._fbRef(db, 'frios_estoque'), (snapshot) => {
-      if (snapshot.exists()) {
-        estoque = snapshot.val();
-        // Garante a integridade dos campos obrigatórios
-        estoque = estoque.map(p => {
-          if (p.precoKg === undefined) {
-            const base = PRODUTOS_BASE.find(b => b.codigo === p.codigo);
-            p.precoKg = base ? base.precoKg : 0;
-          }
-          return p;
-        });
-      } else {
-        // Se o banco estiver totalmente vazio, inicializa com os produtos padrão
-        estoque = PRODUTOS_BASE.map(p => ({...p}));
-        window._fbSet(window._fbRef(db, 'frios_estoque'), estoque);
+  setSaveStatus('Conectando à planilha...','#888');
+  fetch(SHEETS_API_URL)
+    .then(r => r.json())
+    .then(dados => {
+      estoque = (dados.estoque && dados.estoque.length) ? dados.estoque : PRODUTOS_BASE.map(p => ({...p}));
+      estoque = estoque.map(p => {
+        if (p.precoKg === undefined || p.precoKg === '') {
+          const base = PRODUTOS_BASE.find(b => b.codigo === p.codigo);
+          p.precoKg = base ? base.precoKg : 0;
+        }
+        return p;
+      });
+      historico = dados.historico || [];
+
+      // Se a planilha veio totalmente vazia, inicializa com os produtos padrão
+      if (!dados.estoque || !dados.estoque.length) {
+        salvar();
       }
-      
+
       popularSelect();
       renderEstoque();
       renderPrecos();
+      renderHistorico();
       atualizarSummary();
       setSaveStatus('Online ✓', '#4caf50');
-    }, (error) => {
-      console.error('Erro no listener de estoque:', error);
+
+      if (!pollingInterval) {
+        pollingInterval = setInterval(sincronizar, 20000); // re-sincroniza a cada 20s
+      }
+    })
+    .catch(e => {
+      console.error('Erro ao carregar da planilha:', e);
       setSaveStatus('Erro de conexão', '#e05252');
     });
+}
 
-    // Escuta o histórico de movimentações em tempo real
-    window._fbOnValue(window._fbRef(db, 'frios_historico'), (snapshot) => {
-      historico = snapshot.exists() ? snapshot.val() : [];
+function sincronizar(){
+  if (salvando) return; // evita sobrescrever uma edição em andamento
+  fetch(SHEETS_API_URL)
+    .then(r => r.json())
+    .then(dados => {
+      estoque = dados.estoque || [];
+      historico = dados.historico || [];
+      popularSelect();
+      renderEstoque();
+      renderPrecos();
       renderHistorico();
-    }, (error) => {
-      console.error('Erro no listener de histórico:', error);
-    });
-
-  } catch(e) {
-    console.error('Erro geral no Firebase:', e);
-    estoque = PRODUTOS_BASE.map(p => ({...p}));
-    setSaveStatus('Offline — erro crítico', '#e0a020');
-    popularSelect();
-    renderEstoque();
-    renderPrecos();
-    renderHistorico();
-    atualizarSummary();
-  }
+      atualizarSummary();
+      setSaveStatus('Online ✓', '#4caf50');
+    })
+    .catch(e => console.error('Erro na sincronização periódica:', e));
 }
 
 async function salvar(){
@@ -360,12 +342,14 @@ async function salvar(){
   salvando=true;
   setSaveStatus('Salvando...','#888');
   try{
-    const db=window._fbDb;
-    await window._fbSet(window._fbRef(db,'frios_estoque'),estoque);
-    await window._fbSet(window._fbRef(db,'frios_historico'),historico);
+    await fetch(SHEETS_API_URL, {
+      method: 'POST',
+      headers: {'Content-Type': 'text/plain;charset=utf-8'}, // evita preflight CORS no Apps Script
+      body: JSON.stringify({estoque, historico})
+    });
     setSaveStatus('Salvo ✓','#4caf50');
   }catch(e){
-    console.error('Firebase erro ao salvar:',e);
+    console.error('Erro ao salvar na planilha:',e);
     setSaveStatus('Erro ao salvar','#e05252');
   }
   salvando=false;
@@ -799,8 +783,7 @@ function atualizarRelogio(){
   document.getElementById('data-hora').textContent=new Date().toLocaleDateString('pt-BR',{weekday:'long',day:'2-digit',month:'2-digit',year:'numeric'})+' — '+new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
 }
 
-// carregar() é chamado pelo módulo Firebase (ver <head>)
-// Fallback offline de 3s removido para evitar sobrescrita destrutiva de dados
+// carregar() é chamado assim que a página está pronta (ver <head>)
 atualizarRelogio();
 setInterval(atualizarRelogio,60000);
 </script>
