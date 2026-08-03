@@ -151,6 +151,25 @@ tr:hover td{background:var(--bg3);}
 .upc-row span:first-child{color:var(--text2);}
 .upc-row span:last-child{font-weight:600;}
 .loading{color:var(--text2);font-size:13px;padding:20px 0;}
+
+/* ===== Cards de produto/lote ===== */
+.produto-group{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);margin-bottom:14px;overflow:hidden;}
+.produto-header{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:14px 18px;background:var(--bg3);border-bottom:1px solid var(--border);flex-wrap:wrap;}
+.produto-nome{font-weight:600;font-size:14.5px;}
+.produto-cod{font-size:12px;color:var(--text2);margin-top:2px;}
+.produto-total{text-align:right;}
+.produto-total-val{font-size:18px;font-weight:700;}
+.produto-header-actions{display:flex;align-items:center;gap:8px;}
+.lote-cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:10px;padding:14px 18px;}
+.lote-card{background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius);padding:12px 14px;display:flex;flex-direction:column;gap:8px;}
+.lote-top{display:flex;align-items:center;justify-content:space-between;gap:6px;flex-wrap:wrap;}
+.lote-qtd{font-size:16px;font-weight:700;}
+.lote-info{display:flex;flex-direction:column;gap:3px;font-size:12.5px;}
+.lote-info .li-row{display:flex;justify-content:space-between;}
+.lote-info .li-label{color:var(--text2);}
+.lote-actions{display:flex;flex-wrap:wrap;gap:4px;margin-top:2px;}
+.lote-actions .btn-sm{margin-right:0;}
+.produto-empty{padding:24px;text-align:center;color:var(--text3);font-size:13px;}
 .status-dot{display:inline-block;width:7px;height:7px;border-radius:50%;margin-right:6px;}
 .dot-ok{background:var(--green);}
 .dot-save{background:#888;}
@@ -301,20 +320,7 @@ tr:hover td{background:var(--bg3);}
     <button class="btn-primary" onclick="adicionarProduto()">+ Adicionar Produto ao Banco</button>
   </div>
 
-  <div class="tbl-wrap">
-  <table>
-    <thead><tr>
-      <th style="width:25%">Produto</th>
-      <th style="width:8%">Código</th>
-      <th style="width:15%">Estoque Atual</th>
-      <th style="width:14%">Validade</th>
-      <th style="width:10%">Status</th>
-      <th style="width:28%">Ações de Controle</th>
-    </tr></thead>
-    <tbody id="tbody-estoque">
-      </tbody>
-  </table>
-  </div>
+  <div id="estoque-cards"></div>
 </div>
 
 <div class="section" id="sec-entrada">
@@ -544,31 +550,86 @@ function fmtHora(ts){
 }
 
 function renderEstoque(){
-  const tb=document.getElementById('tbody-estoque');
-  tb.innerHTML=estoque.map((p,i)=>{
-    const sv=statusVal(p.validade);
-    let vBadge='';
-    if(sv==='vencido')vBadge='&nbsp;<span class="badge b-venc">Vencido</span>';
-    else if(sv==='vencendo')vBadge='&nbsp;<span class="badge b-low">Vence em breve</span>';
-    let sBadge='';
-    if(p.saldo<=0)sBadge='<span class="badge b-zero">Zerado</span>';
-    else if(p.saldo<p.min)sBadge='<span class="badge b-low">Baixo</span>';
-    else sBadge='<span class="badge b-ok">OK</span>';
-    const nome=p.nome.length>22?p.nome.substring(0,20)+'...':p.nome;
-    const und=p.unidade||'kg';
-    return`<tr>
-      <td style="font-weight:600;" title="${p.nome}">${nome}</td>
-      <td style="color:var(--text2);">${p.codigo}</td>
-      <td style="font-weight:600;">${p.saldo.toFixed(3)} ${und}</td>
-      <td>${fmtData(p.validade)}${vBadge}</td>
-      <td>${sBadge}</td>
-      <td>
-        <button class="btn-sm" onclick="editarValidade(${i})">Validade</button>
-        <button class="btn-sm" onclick="editarProduto(${i})">Editar</button>
-        <button class="btn-sm" onclick="corrigirSaldo(${i})">Saldo</button>
-        <button class="btn-sm" style="background:var(--red-bg);color:var(--red-text);border-color:#5a2a2a;" onclick="excluirProduto(${i})">Excluir</button>
-      </td>
-    </tr>`;
+  const cont=document.getElementById('estoque-cards');
+
+  if(!estoque.length){
+    cont.innerHTML='<div class="produto-empty">Nenhum produto cadastrado ainda.</div>';
+    return;
+  }
+
+  // Agrupa os lotes (linhas do array) por código de produto
+  const grupos={};
+  const ordem=[];
+  estoque.forEach((p,i)=>{
+    if(!grupos[p.codigo]){
+      grupos[p.codigo]={codigo:p.codigo,nome:p.nome,unidade:p.unidade||'kg',min:p.min,itens:[]};
+      ordem.push(p.codigo);
+    }
+    grupos[p.codigo].itens.push({...p, idx:i});
+  });
+
+  cont.innerHTML=ordem.map(cod=>{
+    const g=grupos[cod];
+    const und=g.unidade;
+    const total=g.itens.reduce((s,it)=>s+it.saldo,0);
+
+    let totalBadge;
+    if(total<=0)totalBadge='<span class="badge b-zero">Zerado</span>';
+    else if(total<g.min)totalBadge='<span class="badge b-low">Baixo</span>';
+    else totalBadge='<span class="badge b-ok">OK</span>';
+
+    // Ordena lotes: vencidos/vencendo primeiro, depois por validade
+    const itensOrdenados=[...g.itens].sort((a,b)=>{
+      if(!a.validade && !b.validade)return 0;
+      if(!a.validade)return 1;
+      if(!b.validade)return -1;
+      return new Date(a.validade)-new Date(b.validade);
+    });
+
+    const lotesHtml=itensOrdenados.map(it=>{
+      const sv=statusVal(it.validade);
+      let vBadge='';
+      if(sv==='vencido')vBadge='<span class="badge b-venc">Vencido</span>';
+      else if(sv==='vencendo')vBadge='<span class="badge b-low">Vence em breve</span>';
+
+      let qtdBadge='';
+      if(it.saldo<=0)qtdBadge='<span class="badge b-zero">Zerado</span>';
+      else if(it.saldo<g.min)qtdBadge='<span class="badge b-low">Baixo</span>';
+
+      return`<div class="lote-card">
+        <div class="lote-top">
+          <span class="lote-qtd">${it.saldo.toFixed(3)} ${und}</span>
+          ${qtdBadge}
+        </div>
+        <div class="lote-info">
+          <div class="li-row"><span class="li-label">Validade</span><span>${fmtData(it.validade)}</span></div>
+          ${vBadge?`<div>${vBadge}</div>`:''}
+          <div class="li-row"><span class="li-label">Preço/kg</span><span>${it.precoKg?('R$ '+Number(it.precoKg).toFixed(2)):'—'}</span></div>
+        </div>
+        <div class="lote-actions">
+          <button class="btn-sm" onclick="editarValidade(${it.idx})">Validade</button>
+          <button class="btn-sm" onclick="corrigirSaldo(${it.idx})">Saldo</button>
+          <button class="btn-sm" style="background:var(--red-bg);color:var(--red-text);border-color:#5a2a2a;" onclick="excluirProduto(${it.idx})">Excluir</button>
+        </div>
+      </div>`;
+    }).join('');
+
+    return`<div class="produto-group">
+      <div class="produto-header">
+        <div>
+          <div class="produto-nome">${g.nome}</div>
+          <div class="produto-cod">Código ${g.codigo} · ${g.itens.length} lote${g.itens.length>1?'s':''}</div>
+        </div>
+        <div class="produto-total">
+          <div class="produto-total-val">${total.toFixed(3)} ${und}</div>
+          ${totalBadge}
+        </div>
+        <div class="produto-header-actions">
+          <button class="btn-sm" onclick="editarProduto(${g.itens[0].idx})">Editar produto</button>
+        </div>
+      </div>
+      <div class="lote-cards">${lotesHtml}</div>
+    </div>`;
   }).join('');
 }
 
