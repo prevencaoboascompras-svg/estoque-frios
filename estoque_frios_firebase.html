@@ -153,23 +153,26 @@ tr:hover td{background:var(--bg3);}
 .loading{color:var(--text2);font-size:13px;padding:20px 0;}
 
 /* ===== Cards de produto/lote (compacto) ===== */
-.produto-group{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);margin-bottom:8px;overflow:hidden;}
-.produto-header{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:8px 14px;background:var(--bg3);border-bottom:1px solid var(--border);flex-wrap:wrap;}
+#estoque-cards{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;align-items:start;}
+.produto-group{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;}
+.produto-header{display:flex;flex-direction:column;gap:4px;padding:8px 12px;background:var(--bg3);border-bottom:1px solid var(--border);}
+.produto-header-top{display:flex;align-items:center;justify-content:space-between;gap:8px;}
 .produto-nome{font-weight:600;font-size:13px;}
 .produto-cod{font-size:11px;color:var(--text2);margin-top:1px;}
-.produto-total{text-align:right;display:flex;align-items:center;gap:8px;}
+.produto-total{display:flex;align-items:center;gap:8px;}
 .produto-total-val{font-size:15px;font-weight:700;}
-.produto-header-actions{display:flex;align-items:center;gap:8px;}
-.lote-cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:6px;padding:8px 10px;}
-.lote-card{background:var(--bg3);border:1px solid var(--border);border-radius:4px;padding:7px 9px;display:flex;flex-direction:column;gap:4px;}
-.lote-top{display:flex;align-items:center;justify-content:space-between;gap:5px;flex-wrap:wrap;}
-.lote-qtd{font-size:13.5px;font-weight:700;}
-.lote-info{display:flex;flex-direction:column;gap:1px;font-size:11px;}
-.lote-info .li-row{display:flex;justify-content:space-between;gap:6px;}
+.produto-header-actions{display:flex;align-items:center;}
+.produto-header-actions .btn-sm{font-size:11px;padding:3px 8px;}
+.lote-cards{display:grid;grid-template-columns:repeat(3,1fr);gap:5px;padding:8px;}
+.lote-card{background:var(--bg3);border:1px solid var(--border);border-radius:4px;padding:6px 7px;display:flex;flex-direction:column;gap:3px;}
+.lote-top{display:flex;align-items:center;justify-content:space-between;gap:4px;flex-wrap:wrap;}
+.lote-qtd{font-size:12.5px;font-weight:700;}
+.lote-info{display:flex;flex-direction:column;gap:1px;font-size:10.5px;}
+.lote-info .li-row{display:flex;justify-content:space-between;gap:4px;}
 .lote-info .li-label{color:var(--text2);white-space:nowrap;}
 .lote-actions{display:flex;flex-wrap:wrap;gap:3px;margin-top:2px;}
-.lote-actions .btn-sm{margin-right:0;padding:3px 7px;font-size:11px;}
-.badge{padding:2px 7px;font-size:10.5px;}
+.lote-actions .btn-sm{margin-right:0;padding:2px 6px;font-size:10px;}
+.badge{padding:1px 6px;font-size:10px;}
 .produto-empty{padding:24px;text-align:center;color:var(--text3);font-size:13px;}
 .status-dot{display:inline-block;width:7px;height:7px;border-radius:50%;margin-right:6px;}
 .dot-ok{background:var(--green);}
@@ -618,16 +621,18 @@ function renderEstoque(){
 
     return`<div class="produto-group">
       <div class="produto-header">
-        <div>
-          <div class="produto-nome">${g.nome}</div>
-          <div class="produto-cod">Código ${g.codigo} · ${g.itens.length} lote${g.itens.length>1?'s':''}</div>
+        <div class="produto-header-top">
+          <div>
+            <div class="produto-nome">${g.nome}</div>
+            <div class="produto-cod">Código ${g.codigo} · ${g.itens.length} lote${g.itens.length>1?'s':''}</div>
+          </div>
+          <div class="produto-header-actions">
+            <button class="btn-sm" onclick="editarProduto(${g.itens[0].idx})">Editar</button>
+          </div>
         </div>
         <div class="produto-total">
           <div class="produto-total-val">${total.toFixed(3)} ${und}</div>
           ${totalBadge}
-        </div>
-        <div class="produto-header-actions">
-          <button class="btn-sm" onclick="editarProduto(${g.itens[0].idx})">Editar produto</button>
         </div>
       </div>
       <div class="lote-cards">${lotesHtml}</div>
