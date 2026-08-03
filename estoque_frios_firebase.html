@@ -101,9 +101,9 @@
 body{background:var(--bg);color:var(--text);font-family:'Segoe UI',system-ui,sans-serif;font-size:14px;}
 .app{padding:16px;}
 .cards{display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:var(--border);border:1px solid var(--border);border-radius:var(--radius);margin-bottom:18px;overflow:hidden;}
-.card-m{background:var(--bg2);padding:20px 24px;}
+.card-m{background:var(--bg2);padding:12px 18px;}
 .card-m .label{font-size:12px;color:var(--text2);margin-bottom:6px;}
-.card-m .val{font-size:32px;font-weight:600;}
+.card-m .val{font-size:24px;font-weight:600;}
 .val-white{color:var(--text);}
 .val-green{color:var(--green);}
 .val-yellow{color:var(--yellow);}
@@ -132,7 +132,7 @@ tr:hover td{background:var(--bg3);}
 .btn-primary{background:#2d4a2d;border:1px solid #3d6b3d;color:#6fcf6f;padding:8px 20px;border-radius:var(--radius);cursor:pointer;font-size:13px;font-weight:600;}
 .btn-primary:hover{background:#3a5e3a;}
 .btn-danger{background:var(--red-bg);border:1px solid #5a2a2a;color:var(--red-text);padding:6px 14px;border-radius:var(--radius);cursor:pointer;font-size:12px;}
-.form-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:18px;margin-bottom:14px;}
+.form-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:12px 16px;margin-bottom:10px;}
 .form-card h3{font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.08em;margin-bottom:14px;}
 .frow{display:grid;gap:12px;margin-bottom:12px;}
 .frow2{grid-template-columns:1fr 1fr;}
@@ -152,23 +152,24 @@ tr:hover td{background:var(--bg3);}
 .upc-row span:last-child{font-weight:600;}
 .loading{color:var(--text2);font-size:13px;padding:20px 0;}
 
-/* ===== Cards de produto/lote ===== */
-.produto-group{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);margin-bottom:14px;overflow:hidden;}
-.produto-header{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:14px 18px;background:var(--bg3);border-bottom:1px solid var(--border);flex-wrap:wrap;}
-.produto-nome{font-weight:600;font-size:14.5px;}
-.produto-cod{font-size:12px;color:var(--text2);margin-top:2px;}
-.produto-total{text-align:right;}
-.produto-total-val{font-size:18px;font-weight:700;}
+/* ===== Cards de produto/lote (compacto) ===== */
+.produto-group{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);margin-bottom:8px;overflow:hidden;}
+.produto-header{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:8px 14px;background:var(--bg3);border-bottom:1px solid var(--border);flex-wrap:wrap;}
+.produto-nome{font-weight:600;font-size:13px;}
+.produto-cod{font-size:11px;color:var(--text2);margin-top:1px;}
+.produto-total{text-align:right;display:flex;align-items:center;gap:8px;}
+.produto-total-val{font-size:15px;font-weight:700;}
 .produto-header-actions{display:flex;align-items:center;gap:8px;}
-.lote-cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:10px;padding:14px 18px;}
-.lote-card{background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius);padding:12px 14px;display:flex;flex-direction:column;gap:8px;}
-.lote-top{display:flex;align-items:center;justify-content:space-between;gap:6px;flex-wrap:wrap;}
-.lote-qtd{font-size:16px;font-weight:700;}
-.lote-info{display:flex;flex-direction:column;gap:3px;font-size:12.5px;}
-.lote-info .li-row{display:flex;justify-content:space-between;}
-.lote-info .li-label{color:var(--text2);}
-.lote-actions{display:flex;flex-wrap:wrap;gap:4px;margin-top:2px;}
-.lote-actions .btn-sm{margin-right:0;}
+.lote-cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:6px;padding:8px 10px;}
+.lote-card{background:var(--bg3);border:1px solid var(--border);border-radius:4px;padding:7px 9px;display:flex;flex-direction:column;gap:4px;}
+.lote-top{display:flex;align-items:center;justify-content:space-between;gap:5px;flex-wrap:wrap;}
+.lote-qtd{font-size:13.5px;font-weight:700;}
+.lote-info{display:flex;flex-direction:column;gap:1px;font-size:11px;}
+.lote-info .li-row{display:flex;justify-content:space-between;gap:6px;}
+.lote-info .li-label{color:var(--text2);white-space:nowrap;}
+.lote-actions{display:flex;flex-wrap:wrap;gap:3px;margin-top:2px;}
+.lote-actions .btn-sm{margin-right:0;padding:3px 7px;font-size:11px;}
+.badge{padding:2px 7px;font-size:10.5px;}
 .produto-empty{padding:24px;text-align:center;color:var(--text3);font-size:13px;}
 .status-dot{display:inline-block;width:7px;height:7px;border-radius:50%;margin-right:6px;}
 .dot-ok{background:var(--green);}
@@ -602,6 +603,7 @@ function renderEstoque(){
           ${qtdBadge}
         </div>
         <div class="lote-info">
+          <div class="li-row"><span class="li-label">Entrada</span><span>${fmtData(it.dataEntrada)}</span></div>
           <div class="li-row"><span class="li-label">Validade</span><span>${fmtData(it.validade)}</span></div>
           ${vBadge?`<div>${vBadge}</div>`:''}
           <div class="li-row"><span class="li-label">Preço/kg</span><span>${it.precoKg?('R$ '+Number(it.precoKg).toFixed(2)):'—'}</span></div>
@@ -748,7 +750,7 @@ function adicionarProduto(){
   if(!cod||!nome)return alert('Código e Nome do produto são obrigatórios.');
   if(estoque.some(p=>p.codigo===cod))return alert('Já existe um produto com esse código no sistema.');
 
-  estoque.push({codigo:cod,nome,unidade:und,min,saldo,validade:'',precoKg:0});
+  estoque.push({codigo:cod,nome,unidade:und,min,saldo,validade:'',precoKg:0,dataEntrada:new Date().toISOString().slice(0,10)});
 
   document.getElementById('add-codigo').value='';
   document.getElementById('add-nome').value='';
@@ -819,8 +821,11 @@ function registrarEntrada(){
   // Verifica se já existe um lote com o MESMO código e a MESMA validade exata
   let loteExistente = estoque.find(p => p.codigo === baseProd.codigo && p.validade === val);
 
+  const hoje = new Date().toISOString().slice(0,10);
+
   if (loteExistente) {
     loteExistente.saldo = Math.round((loteExistente.saldo + peso) * 1000) / 1000;
+    loteExistente.dataEntrada = hoje;
   } else {
     // Se a validade for diferente e a linha atual já possuir estoque, gera um novo lote (nova linha)
     if (baseProd.saldo > 0 && val && baseProd.validade !== val) {
@@ -831,12 +836,14 @@ function registrarEntrada(){
         min: baseProd.min || 1.0,
         precoKg: baseProd.precoKg || 0,
         saldo: peso,
-        validade: val
+        validade: val,
+        dataEntrada: hoje
       });
     } else {
       // Se a linha atual estiver zerada ou sem validade, reaproveita a linha existente
       baseProd.saldo = Math.round((baseProd.saldo + peso) * 1000) / 1000;
       if (val) baseProd.validade = val;
+      baseProd.dataEntrada = hoje;
     }
   }
 
