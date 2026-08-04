@@ -155,16 +155,15 @@ tr:hover td{background:var(--bg3);}
 /* ===== Cards de produto/lote (compacto) ===== */
 #estoque-cards{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;align-items:start;}
 .produto-group{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;}
-.produto-header{display:flex;flex-direction:column;gap:4px;padding:8px 12px;background:var(--bg3);border-bottom:1px solid var(--border);}
-.produto-header-top{display:flex;align-items:center;justify-content:space-between;gap:8px;}
-.produto-nome-wrap{display:flex;align-items:center;gap:8px;}
-.produto-icone{width:30px;height:30px;min-width:30px;border-radius:7px;display:flex;align-items:center;justify-content:center;font-size:16px;}
-.produto-foto{width:34px;height:34px;min-width:34px;border-radius:7px;object-fit:cover;border:2px solid;}
+.produto-header{display:flex;align-items:center;gap:10px;padding:10px 0 10px 10px;background:var(--bg3);border-bottom:1px solid var(--border);}
+.produto-foto{width:86px;min-width:86px;height:86px;object-fit:cover;border:none;border-radius:10px;}
+.produto-icone{width:86px;min-width:86px;height:86px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:32px;}
+.produto-header-info{flex:1;min-width:0;display:flex;flex-direction:column;justify-content:center;gap:3px;}
 .produto-nome{font-weight:600;font-size:15px;}
 .produto-cod{font-size:12.5px;color:var(--text2);margin-top:1px;}
-.produto-total{display:flex;align-items:center;gap:8px;}
+.produto-total{display:flex;align-items:center;gap:8px;margin-top:4px;}
 .produto-total-val{font-size:18px;font-weight:700;}
-.produto-header-actions{display:flex;align-items:center;}
+.produto-header-actions{display:flex;align-items:center;align-self:center;padding-right:12px;}
 .produto-header-actions .btn-sm{font-size:12.5px;padding:4px 10px;}
 .lote-cards{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;padding:8px;}
 .lote-card{background:var(--bg3);border:1px solid var(--border);border-radius:4px;padding:8px 9px;display:flex;flex-direction:column;gap:4px;}
@@ -419,10 +418,37 @@ tr:hover td{background:var(--bg3);}
 </div>
 
 <div class="section" id="sec-historico">
-  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;flex-wrap:wrap;gap:8px;">
     <span style="font-size:13px;font-weight:600;">Movimentações</span>
     <button class="btn-danger" onclick="limparHistorico()">Limpar todo o histórico</button>
   </div>
+
+  <div class="form-card" style="margin-bottom:12px;padding:10px 14px;">
+    <div class="frow" style="display:grid;grid-template-columns:1.4fr 1fr 1fr 1fr auto;gap:10px;align-items:end;">
+      <div class="field">
+        <label>Buscar por produto</label>
+        <input type="text" id="hist-f-produto" placeholder="ex: presunto" oninput="renderHistorico()">
+      </div>
+      <div class="field">
+        <label>Tipo</label>
+        <select id="hist-f-tipo" onchange="renderHistorico()">
+          <option value="">Todos</option>
+          <option value="entrada">Entrada</option>
+          <option value="baixa">Baixa</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>De</label>
+        <input type="date" id="hist-f-de" onchange="renderHistorico()">
+      </div>
+      <div class="field">
+        <label>Até</label>
+        <input type="date" id="hist-f-ate" onchange="renderHistorico()">
+      </div>
+      <button class="btn-sm" style="margin:0;height:34px;" onclick="limparFiltrosHistorico()">Limpar filtros</button>
+    </div>
+  </div>
+
   <div class="tbl-wrap">
   <table>
     <thead><tr>
@@ -673,21 +699,17 @@ function renderEstoque(){
 
     return`<div class="produto-group" style="border-top:3px solid ${cat.cor};">
       <div class="produto-header">
-        <div class="produto-header-top">
-          <div class="produto-nome-wrap">
-            ${iconeHtml}
-            <div>
-              <div class="produto-nome">${g.nome}</div>
-              <div class="produto-cod">Código ${g.codigo} · ${g.itens.length} lote${g.itens.length>1?'s':''}</div>
-            </div>
-          </div>
-          <div class="produto-header-actions">
-            <button class="btn-sm" onclick="editarProduto(${g.itens[0].idx})">Editar</button>
+        ${iconeHtml}
+        <div class="produto-header-info">
+          <div class="produto-nome">${g.nome}</div>
+          <div class="produto-cod">Código ${g.codigo} · ${g.itens.length} lote${g.itens.length>1?'s':''}</div>
+          <div class="produto-total">
+            <div class="produto-total-val" style="color:${cat.cor};">${total.toFixed(3)} ${und}</div>
+            ${totalBadge}
           </div>
         </div>
-        <div class="produto-total">
-          <div class="produto-total-val" style="color:${cat.cor};">${total.toFixed(3)} ${und}</div>
-          ${totalBadge}
+        <div class="produto-header-actions">
+          <button class="btn-sm" onclick="editarProduto(${g.itens[0].idx})">Editar</button>
         </div>
       </div>
       <div class="lote-cards">${lotesHtml}</div>
@@ -1026,10 +1048,30 @@ function registrarBaixa(){
 
 function renderHistorico(){
   const tb=document.getElementById('tbody-historico');
-  const rows=[...historico].reverse();
-  if(!rows.length){tb.innerHTML='<tr><td colspan="7" style="text-align:center;color:var(--text3);padding:24px 0;">Nenhuma movimentação</td></tr>';return;}
-  tb.innerHTML=rows.map((r,i)=>{
-    const idxReal=historico.length-1-i;
+
+  const fProduto=(document.getElementById('hist-f-produto')?.value||'').trim().toLowerCase();
+  const fTipo=document.getElementById('hist-f-tipo')?.value||'';
+  const fDe=document.getElementById('hist-f-de')?.value||'';
+  const fAte=document.getElementById('hist-f-ate')?.value||'';
+
+  let rows=[...historico].map((r,idxReal)=>({...r,idxReal})).reverse();
+
+  if(fProduto) rows=rows.filter(r=>(r.nome||'').toLowerCase().includes(fProduto));
+  if(fTipo) rows=rows.filter(r=>r.tipo===fTipo);
+  if(fDe){
+    const de=new Date(fDe+'T00:00:00');
+    rows=rows.filter(r=>new Date(r.ts)>=de);
+  }
+  if(fAte){
+    const ate=new Date(fAte+'T23:59:59');
+    rows=rows.filter(r=>new Date(r.ts)<=ate);
+  }
+
+  if(!historico.length){tb.innerHTML='<tr><td colspan="7" style="text-align:center;color:var(--text3);padding:24px 0;">Nenhuma movimentação</td></tr>';return;}
+  if(!rows.length){tb.innerHTML='<tr><td colspan="7" style="text-align:center;color:var(--text3);padding:24px 0;">Nenhum resultado para os filtros aplicados</td></tr>';return;}
+
+  tb.innerHTML=rows.map(r=>{
+    const idxReal=r.idxReal;
     const prod=estoque.find(p=>p.codigo===r.codigo);
     const und=prod?(prod.unidade||'kg'):'kg';
     return `<tr>
@@ -1042,6 +1084,14 @@ function renderHistorico(){
       <td><button class="btn-sm" style="background:var(--red-bg);color:var(--red-text);border-color:#5a2a2a;margin:0;" onclick="excluirItemHistorico(${idxReal})">Apagar</button></td>
     </tr>`;
   }).join('');
+}
+
+function limparFiltrosHistorico(){
+  document.getElementById('hist-f-produto').value='';
+  document.getElementById('hist-f-tipo').value='';
+  document.getElementById('hist-f-de').value='';
+  document.getElementById('hist-f-ate').value='';
+  renderHistorico();
 }
 
 function excluirItemHistorico(idx){
