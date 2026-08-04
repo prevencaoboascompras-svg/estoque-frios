@@ -279,8 +279,8 @@ tr:hover td{background:var(--bg3);}
       </g>
     </svg>
     <div>
-    <div style="font-size:20px;font-weight:700;color:var(--text);line-height:1.2;">Sistema de controle de estoque de frios</div>
-    <div style="font-size:15px;font-weight:600;color:var(--text);margin-top:2px;">Estoque de Frios</div>
+    <div style="font-size:20px;font-weight:700;color:var(--text);line-height:1.2;">Escudo Padaria</div>
+    <div style="font-size:15px;font-weight:600;color:var(--text);margin-top:2px;">Sistema de controle de estoque de frios</div>
     <div style="font-size:12px;color:var(--text2);margin-top:1px;" id="data-hora"></div>
   </div>
   </div>
@@ -861,11 +861,12 @@ function excluirProduto(i){
 }
 
 function atualizarSummary(){
-  const total=estoque.length;
+  const total=estoque.length; // total de lotes
+  const produtosUnicos=new Set(estoque.map(p=>p.codigo)).size; // total de produtos distintos
   const zeros=estoque.filter(p=>p.saldo<=0).length;
   const baixos=estoque.filter(p=>p.saldo>0&&p.saldo<p.min).length;
   const venc=estoque.filter(p=>{const s=statusVal(p.validade);return s==='vencido'||s==='vencendo';}).length;
-  document.getElementById('s-total').textContent=total;
+  document.getElementById('s-total').textContent=produtosUnicos;
   document.getElementById('s-ok').textContent=total-zeros-baixos;
   document.getElementById('s-low').textContent=zeros+baixos;
   const vEl=document.getElementById('s-venc');
