@@ -429,7 +429,7 @@ tr:hover td{background:var(--bg3);}
 <div class="section" id="sec-historico">
   <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;flex-wrap:wrap;gap:8px;">
     <span style="font-size:13px;font-weight:600;">Movimentações</span>
-    <button class="btn-danger" onclick="limparHistorico()">Limpar todo o histórico</button>
+    <button class="btn-danger" onclick="limparHistorico()">Histórico protegido</button>
   </div>
 
   <div class="form-card" style="margin-bottom:12px;padding:10px 14px;">
@@ -444,6 +444,7 @@ tr:hover td{background:var(--bg3);}
           <option value="">Todos</option>
           <option value="entrada">Entrada</option>
           <option value="baixa">Baixa</option>
+          <option value="estorno">Estorno</option>
         </select>
       </div>
       <div class="field">
@@ -916,6 +917,14 @@ function mostrarMsg(id,tipo,txt){
   setTimeout(()=>el.classList.remove('show'),4000);
 }
 
+function gerarIdMov(){
+  return 'mov_'+Date.now()+'_'+Math.random().toString(36).slice(2,8);
+}
+
+function totalProduto(codigo){
+  return Math.round(estoque.filter(p=>p.codigo===codigo).reduce((s,p)=>s+(Number(p.saldo)||0),0)*1000)/1000;
+}
+
 function registrarEntrada(){
   const idx=document.getElementById('ent-produto').value;
   const peso=parseFloat(document.getElementById('ent-peso').value);
@@ -959,7 +968,10 @@ function registrarEntrada(){
   // Calcula o total consolidado global de todos os lotes juntos para registrar no histórico
   const totalConsolidado = estoque.filter(p => p.codigo === baseProd.codigo).reduce((sum, p) => sum + p.saldo, 0);
 
-  historico.push({ts:Date.now(),tipo:'entrada',codigo:baseProd.codigo,nome:baseProd.nome,peso,saldoApos:totalConsolidado,resp});
+  historico.push({
+    id:gerarIdMov(),ts:Date.now(),tipo:'entrada',codigo:baseProd.codigo,nome:baseProd.nome,peso,
+    saldoApos:totalConsolidado,resp,validadeMov:val||'',estornado:false
+  });
   
   popularSelect();
   salvar();renderEstoque();atualizarSummary();renderHistorico();renderPrecos();
@@ -1086,23 +1098,29 @@ function registrarBaixa(){
   let lotesOrdenados = [...lotesComValidade, ...lotesSemValidade];
 
   let pesoFaltante = pesoKg;
+  const lotesMov = [];
   for (let lote of lotesOrdenados) {
     if (pesoFaltante <= 0) break;
     if (lote.saldo <= 0) continue;
     let aBaixar = Math.min(lote.saldo, pesoFaltante);
     lote.saldo = Math.round((lote.saldo - aBaixar) * 1000) / 1000;
+    lotesMov.push({validade:lote.validade||'',qtd:Math.round(aBaixar*1000)/1000});
     pesoFaltante = Math.round((pesoFaltante - aBaixar) * 1000) / 1000;
   }
 
-  // Mantém o comportamento já existente: se faltar estoque, registra saldo negativo no lote mais antigo.
+  // Se faltar estoque, registra saldo negativo no lote mais antigo e guarda essa parcela para eventual estorno.
   if (pesoFaltante > 0 && lotesOrdenados.length) {
     lotesOrdenados[0].saldo = Math.round((lotesOrdenados[0].saldo - pesoFaltante) * 1000) / 1000;
+    const mov0=lotesMov.find(m=>m.validade===(lotesOrdenados[0].validade||''));
+    if(mov0) mov0.qtd=Math.round((mov0.qtd+pesoFaltante)*1000)/1000;
+    else lotesMov.push({validade:lotesOrdenados[0].validade||'',qtd:Math.round(pesoFaltante*1000)/1000});
   }
 
   const totalConsolidado = estoque.filter(p => p.codigo === codProd).reduce((sum, p) => sum + p.saldo, 0);
   historico.push({
-    ts:Date.now(),tipo:'baixa',codigo:codProd,nome:nomeProd,peso:pesoKg,
-    saldoApos:totalConsolidado,resp,origem:d.origem,valorTotal:d.valorUsado||0
+    id:gerarIdMov(),ts:Date.now(),tipo:'baixa',codigo:codProd,nome:nomeProd,peso:pesoKg,
+    saldoApos:totalConsolidado,resp,origem:d.origem,valorTotal:d.valorUsado||0,
+    lotesMov:JSON.stringify(lotesMov),estornado:false
   });
 
   salvar();renderEstoque();atualizarSummary();renderHistorico();
@@ -1143,14 +1161,24 @@ function renderHistorico(){
     const idxReal=r.idxReal;
     const prod=estoque.find(p=>p.codigo===r.codigo);
     const und=prod?(prod.unidade||'kg'):'kg';
+    const ehEstorno=r.tipo==='estorno';
+    const classe=ehEstorno?'b-zero':(r.tipo==='entrada'?'b-entry':'b-baixa');
+    const rotulo=ehEstorno?'Estorno':(r.tipo==='entrada'?'Entrada':'Baixa');
+    let sinal=r.tipo==='entrada'?'+':'-';
+    if(ehEstorno) sinal=r.tipoOriginal==='baixa'?'+':'-';
+    const cor=ehEstorno?'var(--red)':(r.tipo==='entrada'?'var(--green)':'var(--yellow)');
+    const podeEstornar=!ehEstorno && !r.estornado;
+    const acao=podeEstornar
+      ? `<button class="btn-sm" style="background:var(--red-bg);color:var(--red-text);border-color:#5a2a2a;margin:0;" onclick="estornarItemHistorico(${idxReal})">Estornar</button>`
+      : `<span style="font-size:11px;color:var(--text3);">${r.estornado?'Estornado':'—'}</span>`;
     return `<tr>
       <td style="font-size:12px;color:var(--text2);">${fmtHora(r.ts)}</td>
       <td style="font-weight:600;">${r.nome}</td>
-      <td><span class="badge ${r.tipo==='entrada'?'b-entry':'b-baixa'}">${r.tipo==='entrada'?'Entrada':'Baixa'}</span></td>
-      <td style="font-weight:600;color:${r.tipo==='entrada'?'var(--green)':'var(--yellow)'};">${r.tipo==='entrada'?'+':'-'}${Math.abs(r.peso).toFixed(3)}</td>
-      <td>${r.saldoApos.toFixed(3)} ${und}</td>
+      <td><span class="badge ${classe}">${rotulo}</span></td>
+      <td style="font-weight:600;color:${cor};">${sinal}${Math.abs(Number(r.peso)||0).toFixed(3)}</td>
+      <td>${Number(r.saldoApos||0).toFixed(3)} ${und}</td>
       <td style="color:var(--text2);">${r.resp||'—'}</td>
-      <td><button class="btn-sm" style="background:var(--red-bg);color:var(--red-text);border-color:#5a2a2a;margin:0;" onclick="excluirItemHistorico(${idxReal})">Apagar</button></td>
+      <td>${acao}</td>
     </tr>`;
   }).join('');
 }
@@ -1163,15 +1191,73 @@ function limparFiltrosHistorico(){
   renderHistorico();
 }
 
-function excluirItemHistorico(idx){
-  if(confirm('Tem certeza que deseja apagar permanentemente esse registro do histórico? (Nota: Isso não altera o saldo atual do estoque)')){
-    historico.splice(idx,1);
-    salvar();renderHistorico();
+function estornarItemHistorico(idx){
+  const mov=historico[idx];
+  if(!mov || mov.tipo==='estorno' || mov.estornado) return;
+
+  const peso=Math.abs(Number(mov.peso)||0);
+  if(peso<=0) return alert('Esta movimentação não possui quantidade válida para estorno.');
+  const lotes=estoque.filter(p=>p.codigo===String(mov.codigo));
+  if(!lotes.length) return alert('Produto não encontrado no estoque. Não é possível estornar automaticamente.');
+  const und=lotes[0].unidade||'kg';
+  const acao=mov.tipo==='baixa'?'DEVOLVER ao estoque':'RETIRAR do estoque';
+  if(!confirm(`Estornar esta ${mov.tipo==='entrada'?'ENTRADA':'BAIXA'} de ${peso.toFixed(3)} ${und}?\n\nO sistema irá ${acao} e manterá os dois registros no histórico para auditoria.`)) return;
+
+  if(mov.tipo==='baixa'){
+    // Baixas novas guardam exatamente de quais lotes saíram; restaura nos mesmos lotes.
+    let detalhes=[];
+    try{ detalhes=mov.lotesMov?JSON.parse(mov.lotesMov):[]; }catch(e){ detalhes=[]; }
+    if(detalhes.length){
+      detalhes.forEach(d=>{
+        let lote=estoque.find(p=>p.codigo===String(mov.codigo) && (p.validade||'')===(d.validade||''));
+        if(!lote){
+          const base=lotes[0];
+          lote={codigo:base.codigo,nome:base.nome,unidade:base.unidade||'kg',min:base.min||1,precoKg:base.precoKg||0,saldo:0,validade:d.validade||'',dataEntrada:new Date().toISOString().slice(0,10)};
+          estoque.push(lote);
+        }
+        lote.saldo=Math.round((Number(lote.saldo||0)+Number(d.qtd||0))*1000)/1000;
+      });
+    }else{
+      // Compatibilidade com registros antigos: devolve ao lote que vence primeiro.
+      const destino=[...lotes].sort((a,b)=>(a.validade||'9999-12-31').localeCompare(b.validade||'9999-12-31'))[0];
+      destino.saldo=Math.round((Number(destino.saldo||0)+peso)*1000)/1000;
+    }
+  }else if(mov.tipo==='entrada'){
+    // Para entradas novas, tenta retirar do lote da validade original; em registros antigos usa FEFO.
+    let faltante=peso;
+    let ordenados=[...lotes];
+    if(mov.validadeMov){
+      ordenados.sort((a,b)=>((a.validade||'')===mov.validadeMov?-1:0)-((b.validade||'')===mov.validadeMov?-1:0));
+    }else{
+      ordenados.sort((a,b)=>(a.validade||'9999-12-31').localeCompare(b.validade||'9999-12-31'));
+    }
+    const disponivel=ordenados.reduce((s,l)=>s+Math.max(0,Number(l.saldo)||0),0);
+    if(disponivel+0.0001<peso) return alert(`Não é possível estornar: o estoque atual disponível (${disponivel.toFixed(3)} ${und}) é menor que a entrada original (${peso.toFixed(3)} ${und}).`);
+    for(const lote of ordenados){
+      if(faltante<=0) break;
+      const tirar=Math.min(Math.max(0,Number(lote.saldo)||0),faltante);
+      lote.saldo=Math.round((Number(lote.saldo||0)-tirar)*1000)/1000;
+      faltante=Math.round((faltante-tirar)*1000)/1000;
+    }
+  }else{
+    return alert('Tipo de movimentação não suportado para estorno.');
   }
+
+  mov.estornado=true;
+  if(!mov.id) mov.id='legacy_'+mov.ts+'_'+idx;
+  const novoSaldo=totalProduto(String(mov.codigo));
+  historico.push({
+    id:gerarIdMov(),ts:Date.now(),tipo:'estorno',tipoOriginal:mov.tipo,estornoDe:mov.id,
+    codigo:String(mov.codigo),nome:mov.nome,peso:peso,saldoApos:novoSaldo,
+    resp:(storageGet(LOGIN_STORAGE_KEY)||'Usuário')+' — estorno',estornado:false
+  });
+
+  salvar();renderEstoque();atualizarSummary();renderHistorico();renderPrecos();
+  alert(`Estorno concluído. Novo saldo total: ${novoSaldo.toFixed(3)} ${und}.`);
 }
 
 function limparHistorico(){
-  if(confirm('Limpar TODO o histórico de movimentações permanentemente?')){historico=[];salvar();renderHistorico();}
+  alert('Por segurança e auditoria, o histórico não pode mais ser apagado em massa. Use Estornar na movimentação incorreta.');
 }
 
 function exportarRelatorio(){
@@ -1188,7 +1274,10 @@ function exportarRelatorio(){
   [...historico].reverse().forEach(r=>{
     const prod=estoque.find(p=>p.codigo===r.codigo);
     const und=prod?(prod.unidade||'kg'):'kg';
-    txt+=fmtHora(r.ts)+'|'+r.nome+'|'+(r.tipo==='entrada'?'Entrada':'Baixa')+'|'+(r.tipo==='entrada'?'+':'-')+Math.abs(r.peso).toFixed(3)+' '+und+'|'+r.saldoApos.toFixed(3)+' '+und+'|'+(r.resp||'—')+'\n';
+    const tipoTxt=r.tipo==='estorno'?'Estorno':(r.tipo==='entrada'?'Entrada':'Baixa');
+    let sinal=r.tipo==='entrada'?'+':'-';
+    if(r.tipo==='estorno') sinal=r.tipoOriginal==='baixa'?'+':'-';
+    txt+=fmtHora(r.ts)+'|'+r.nome+'|'+tipoTxt+'|'+sinal+Math.abs(Number(r.peso)||0).toFixed(3)+' '+und+'|'+Number(r.saldoApos||0).toFixed(3)+' '+und+'|'+(r.resp||'—')+'\n';
   });
   const blob=new Blob([txt],{type:'text/plain;charset=utf-8'});
   const a=document.createElement('a');
