@@ -1,5 +1,7 @@
-<html><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
-<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 230'%3E%3Cpath d='M100 8 L172 32 L172 108 Q172 178 100 218 Q28 178 28 108 L28 32 Z' fill='%232b2b2b' stroke='%23e8241a' stroke-width='10' stroke-linejoin='round'/%3E%3Cg transform='translate(72,78)'%3E%3Cpath d='M0 8 L38 0 L52 9 L52 56 Q52 60 48 60 L4 60 Q0 60 0 56 Z' fill='%23f2f6d8' stroke='%233a3a2a' stroke-width='2'/%3E%3Ccircle cx='12' cy='19' r='3.6' fill='%232b2b2b'/%3E%3Ccircle cx='33' cy='16' r='3' fill='%232b2b2b'/%3E%3Ccircle cx='22' cy='35' r='3.2' fill='%232b2b2b'/%3E%3Ccircle cx='41' cy='37' r='4' fill='%232b2b2b'/%3E%3Ccircle cx='8' cy='45' r='2.6' fill='%232b2b2b'/%3E%3C/g%3E%3C/svg%3E">
+<html><head>
+<title>Escudo Padaria · Estoque de Frios</title><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<link rel="icon" type="image/png" href="escudo_padaria_aura_logo.png">
+<link rel="stylesheet" href="https://unpkg.com/@tabler/icons-webfont@3.10.0/dist/tabler-icons.min.css">
 
 <script>
   // ===== CONFIGURAÇÃO: Google Apps Script (planilha como banco de dados) =====
@@ -176,6 +178,10 @@ tr:hover td{background:var(--bg3);}
 .lote-actions .btn-sm{margin-right:0;padding:3px 8px;font-size:12px;}
 .badge{padding:2px 8px;font-size:12px;}
 .produto-empty{padding:24px;text-align:center;color:var(--text3);font-size:13px;}
+.dashboard-lotes-regra{font-size:11.5px;color:var(--text3);margin:-2px 0 10px;text-align:right;}
+.lotes-ocultos-info{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:0 8px 8px;color:var(--text3);font-size:11.5px;}
+.lotes-ocultos-info .btn-sm{margin:0;white-space:nowrap;}
+
 .status-dot{display:inline-block;width:7px;height:7px;border-radius:50%;margin-right:6px;}
 .dot-ok{background:var(--green);}
 .dot-save{background:#888;}
@@ -210,6 +216,143 @@ tr:hover td{background:var(--bg3);}
 .login-btn-entrar:hover{filter:brightness(1.1);}
 .login-footer{font-size:11px;color:var(--text3);margin-top:26px;}
 .app-conteudo-protegido{display:none;}
+
+
+/* ===== ESCUDO PADARIA · PADRÃO VISUAL AURA v24 ===== */
+:root{
+  --aura-red:#ef4444;--aura-red-dark:#b91c1c;--aura-red-deep:#991b1b;
+  --aura-yellow:#fde047;--aura-emerald:#10b981;--aura-amber:#f59e0b;
+  --bg:#111111;--bg2:#2a2a2a;--bg3:#333333;--bg4:#3b3b3b;
+  --text:#f5f5f5;--text2:#a0a0a0;--text3:#737373;--border:rgba(255,255,255,.09);
+  --green:#10b981;--green-bg:rgba(16,185,129,.15);--green-text:#34d399;
+  --red:#ef4444;--red-bg:rgba(239,68,68,.14);--red-text:#f87171;
+  --yellow:#f59e0b;--yellow-bg:rgba(245,158,11,.14);--yellow-text:#fbbf24;
+  --blue:#3b82f6;--radius:8px;
+}
+body{background:#111;color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;font-size:14px;}
+.app{padding:0 28px 28px;max-width:1600px;margin:0 auto;}
+
+/* header AURA */
+.escudo-aura-header{margin:0 -28px;padding:18px 32px;background:linear-gradient(90deg,var(--aura-red-dark),var(--aura-red-deep));display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;border-bottom:1px solid rgba(0,0,0,.25);box-shadow:0 6px 24px rgba(0,0,0,.18);}
+.escudo-tagline{font-size:11px;font-weight:700;display:flex;align-items:center;gap:6px;color:rgba(255,255,255,.86);margin-bottom:6px;text-transform:none;}
+.escudo-tagline i{font-size:16px;color:var(--aura-yellow)}
+.escudo-badge{margin-left:4px;background:var(--aura-yellow);color:#3f1818;font-size:9px;font-weight:800;padding:2px 7px;border-radius:3px;letter-spacing:.06em;}
+.escudo-title-row{display:flex;align-items:center;gap:11px;}
+.escudo-header-icon{width:44px;height:44px;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.escudo-header-icon img{width:44px;height:44px;object-fit:contain;display:block;filter:drop-shadow(0 4px 10px rgba(0,0,0,.22));}
+.escudo-aura-header h1{font-size:23px;font-weight:800;color:#fff;line-height:1;letter-spacing:-.025em;}
+.escudo-aura-header p{color:rgba(255,255,255,.78);font-size:12px;margin-top:5px;}
+.escudo-aura-actions{display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
+.aura-save-pill,.aura-header-btn{background:rgba(255,255,255,.14);color:#fff;border:1px solid rgba(255,255,255,.10);font-size:12px;font-weight:600;padding:8px 12px;border-radius:7px;backdrop-filter:blur(5px);}
+.aura-save-pill{display:flex;align-items:center;gap:3px;}
+.aura-header-btn{cursor:pointer;display:inline-flex;align-items:center;gap:7px;transition:.15s;}
+.aura-header-btn:hover{background:rgba(255,255,255,.24);}
+.aura-header-btn i{font-size:17px;}
+.escudo-syncbar{margin:0 -28px 18px;padding:6px 32px;background:#181818;border-bottom:1px solid var(--border);color:var(--text2);font-size:11px;display:flex;align-items:center;gap:7px;}
+.escudo-syncbar i{color:#737373;font-size:14px;}
+
+/* métricas */
+.cards{gap:10px;background:transparent;border:none;border-radius:0;overflow:visible;margin-bottom:18px!important;}
+.card-m{background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:14px 16px;box-shadow:0 1px 0 rgba(255,255,255,.02);}
+.card-m .label{font-size:10.5px;text-transform:uppercase;letter-spacing:.045em;color:var(--text2);display:flex;align-items:center;gap:6px;margin-bottom:7px;}
+.card-m .label i{font-size:15px;}
+.card-m .val{font-size:27px;font-weight:700;line-height:1;}
+
+/* nav igual AURA */
+.tabs{margin:0 -28px 20px;padding:0 24px;display:flex;align-items:center;gap:2px;background:var(--bg2);border-bottom:1px solid var(--border);overflow-x:auto;scrollbar-width:none;}
+.tabs::-webkit-scrollbar{display:none;}
+.tab{background:transparent;border:none;border-bottom:2px solid transparent;border-radius:0;color:var(--text2);padding:13px 16px;margin:0;font-size:13px;font-weight:500;white-space:nowrap;flex-shrink:0;display:flex;align-items:center;gap:8px;transition:.15s;}
+.tab i{font-size:17px;}
+.tab:hover{background:transparent;color:var(--text);}
+.tab.active{background:transparent;color:var(--text);border-color:transparent;border-bottom-color:var(--aura-red);}
+
+/* superfícies */
+.form-card,.produto-group{background:var(--bg2);border:1px solid var(--border);border-radius:10px;box-shadow:0 1px 0 rgba(255,255,255,.02);}
+.form-card{padding:16px 18px;margin-bottom:12px;}
+.form-card h3{font-size:11px;font-weight:800;color:var(--text2);text-transform:uppercase;letter-spacing:.075em;margin-bottom:15px;display:flex;align-items:center;gap:7px;}
+.produto-header{background:rgba(255,255,255,.025);border-bottom:1px solid var(--border);}
+.lote-card{background:#242424;border:1px solid var(--border);border-radius:7px;}
+.dashboard-lotes-regra{background:rgba(239,68,68,.07);border:1px solid rgba(239,68,68,.18);color:#d8d8d8;border-radius:8px;padding:9px 12px;margin-bottom:12px;font-size:11.5px;}
+
+/* campos */
+.field label{font-size:10.5px;font-weight:700;letter-spacing:.025em;color:var(--text2);margin-bottom:6px;}
+.field input,.field select{background:#222;border:1px solid rgba(255,255,255,.12);color:var(--text);padding:9px 11px;border-radius:7px;font-size:13px;min-height:38px;}
+.field input:focus,.field select:focus{border-color:var(--aura-red);box-shadow:0 0 0 3px rgba(239,68,68,.12);}
+.field select option{background:#222;}
+.upc-box{background:#222;border:1px solid var(--border);border-radius:8px;padding:13px;}
+
+/* botões */
+.btn-primary{background:var(--aura-red);border:1px solid var(--aura-red);color:#fff;padding:8px 15px;border-radius:7px;font-size:12.5px;font-weight:700;display:inline-flex;align-items:center;justify-content:center;gap:7px;transition:.15s;}
+.btn-primary:hover{background:#dc2626;border-color:#dc2626;}
+.btn-primary i,.btn-sm i,.btn-danger i{font-size:15px;}
+.btn-sm{background:#333;border:1px solid rgba(255,255,255,.1);color:#e5e5e5;padding:5px 10px;border-radius:6px;font-size:11.5px;display:inline-flex;align-items:center;justify-content:center;gap:5px;}
+.btn-sm:hover{background:#414141;border-color:rgba(255,255,255,.17);}
+.btn-danger{background:rgba(239,68,68,.12);border:1px solid rgba(239,68,68,.3);color:#fca5a5;padding:7px 13px;border-radius:7px;display:inline-flex;align-items:center;gap:6px;}
+
+/* tabela AURA */
+.tbl-wrap{background:var(--bg2);border:1px solid var(--border);border-radius:9px;overflow:auto;}
+table{background:transparent;}
+th{background:rgba(255,255,255,.025);color:var(--text2);font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;padding:11px 12px;border-bottom:1px solid var(--border);}
+td{padding:10px 12px;border-bottom:1px solid var(--border);font-size:12.5px;}
+tr:hover td{background:rgba(255,255,255,.025);}
+.badge{border-radius:999px;padding:3px 9px;font-size:10.5px;font-weight:800;}
+
+/* login AURA */
+.login-overlay{background:linear-gradient(135deg,#1a1a1a 0%,#2a0a0a 100%);padding:24px;}
+.login-card{background:#1e1e1c;border:1px solid rgba(255,255,255,.10);border-radius:20px;padding:38px 34px 32px;width:100%;max-width:430px;box-shadow:0 32px 80px rgba(0,0,0,.6);}
+.login-icon{margin-bottom:13px;}
+.aura-login-mark{width:82px;height:82px;margin:0 auto;display:flex;align-items:center;justify-content:center;filter:drop-shadow(0 9px 22px rgba(212,0,26,.32));}
+.aura-login-mark img{width:100%;height:100%;object-fit:contain;display:block;}
+.login-eyebrow{font-size:10px;font-weight:800;letter-spacing:.11em;color:rgba(255,255,255,.45);margin-bottom:5px;}
+.login-title{font-size:24px;font-weight:900;color:#fff;margin-bottom:3px;letter-spacing:-.025em;}
+.login-product-sub{font-size:13px;color:rgba(255,255,255,.46);margin-bottom:7px;}
+.login-sub{font-size:13px;color:rgba(255,255,255,.58);margin-bottom:25px;}
+.login-avatars{gap:12px;margin-bottom:10px;flex-wrap:wrap;}
+.login-avatar{background:transparent;border:2px solid rgba(255,255,255,.09);border-radius:14px;padding:14px 15px;min-width:94px;transition:border-color .15s,transform .12s,background .15s;}
+.login-avatar:hover{border-color:rgba(255,255,255,.27);background:rgba(255,255,255,.04);transform:translateY(-2px);}
+.login-avatar-circle{width:58px;height:58px;background:linear-gradient(135deg,#D4001A,#8B0011);box-shadow:0 4px 16px rgba(212,0,26,.35);font-size:23px;font-weight:900;}
+.login-avatar-nome{font-size:12px;font-weight:700;color:rgba(255,255,255,.72);}
+.login-senha-box{margin-top:14px;padding-top:15px;border-top:1px solid rgba(255,255,255,.08);}
+.login-senha-usuario{font-size:14px;font-weight:800;color:#fff;margin-bottom:12px;}
+.login-senha-input{height:50px;background:#2a2a28;border:1.5px solid rgba(255,255,255,.12);border-radius:10px;padding:0 16px;font-size:14px;color:#f0efe8;text-align:left;letter-spacing:.03em;}
+.login-senha-input:focus{border-color:#E24B4A;box-shadow:0 0 0 3px rgba(226,75,74,.15);}
+.login-senha-botoes{margin-top:10px;}
+.login-btn-voltar,.login-btn-entrar{height:45px;border-radius:9px;font-size:13px;font-weight:750;display:flex;align-items:center;justify-content:center;gap:6px;}
+.login-btn-voltar{background:#2a2a28;border:1px solid rgba(255,255,255,.1);color:rgba(255,255,255,.65);}
+.login-btn-entrar{background:#E24B4A;border:1px solid #E24B4A;color:#fff;}
+.login-btn-entrar:hover{background:#c93b3a;}
+.login-senha-erro{color:#fca5a5;background:rgba(239,68,68,.1);border-radius:7px;padding:0 8px;min-height:0;margin-top:8px;}
+.login-senha-erro:not(:empty){padding:8px 10px;border:1px solid rgba(239,68,68,.25);}
+.login-footer{color:rgba(255,255,255,.22);margin-top:22px;}
+
+/* responsivo */
+@media(max-width:900px){
+  .app{padding:0 16px 20px;}
+  .escudo-aura-header{margin:0 -16px;padding:14px 16px;}
+  .escudo-syncbar{margin:0 -16px 14px;padding:5px 16px;}
+  .tabs{margin:0 -16px 16px;padding:0 10px;}
+  .cards{grid-template-columns:repeat(2,1fr)!important;}
+  #estoque-cards{grid-template-columns:repeat(2,1fr)!important;}
+  .frow3{grid-template-columns:1fr 1fr;}
+}
+@media(max-width:620px){
+  .escudo-aura-header h1{font-size:18px;}
+  .escudo-aura-header p{font-size:10px;}
+  .escudo-tagline{font-size:9px;}
+  .escudo-badge{font-size:8px;}
+  .escudo-aura-actions{width:100%;justify-content:space-between;}
+  .aura-header-btn span{display:none;}
+  .cards{grid-template-columns:1fr 1fr!important;gap:7px;}
+  .card-m{padding:11px 12px;}
+  .card-m .val{font-size:22px;}
+  #estoque-cards{grid-template-columns:1fr!important;}
+  .frow2,.frow3{grid-template-columns:1fr;}
+  .tab{padding:11px 12px;font-size:11.5px;}
+  .login-card{padding:32px 20px 28px;}
+  .login-avatar{min-width:82px;padding:12px 10px;}
+  .login-avatar-circle{width:52px;height:52px;}
+}
+
 </style>
 
 </head><body>
@@ -218,20 +361,10 @@ tr:hover td{background:var(--bg3);}
 <div id="login-overlay" class="login-overlay">
   <div class="login-card">
     <div class="login-icon">
-      <svg class="app-logo" width="56" height="64" viewBox="0 0 200 230" xmlns="http://www.w3.org/2000/svg">
-        <path d="M100 8 L172 32 L172 108 Q172 178 100 218 Q28 178 28 108 L28 32 Z" fill="#2b2b2b" stroke="#e8241a" stroke-width="10" stroke-linejoin="round"/>
-        <g transform="translate(72,78)">
-          <path d="M0 8 L38 0 L52 9 L52 56 Q52 60 48 60 L4 60 Q0 60 0 56 Z" fill="#f2f6d8" stroke="#3a3a2a" stroke-width="2"/>
-          <circle cx="12" cy="19" r="3.6" fill="#2b2b2b"/>
-          <circle cx="33" cy="16" r="3" fill="#2b2b2b"/>
-          <circle cx="22" cy="35" r="3.2" fill="#2b2b2b"/>
-          <circle cx="41" cy="37" r="4" fill="#2b2b2b"/>
-          <circle cx="8" cy="45" r="2.6" fill="#2b2b2b"/>
-        </g>
-      </svg>
+      <div class="aura-login-mark"><img src="escudo_padaria_aura_logo.png" alt="Escudo Padaria"></div>
     </div>
-    <div class="login-eyebrow">ESCUDO PADARIA</div>
-    <div class="login-title">Sistema de Controle de Estoque de Frios</div>
+    <div class="login-eyebrow">SUPERMERCADO BOAS COMPRAS</div>
+    <div class="login-title">ESCUDO PADARIA</div><div class="login-product-sub">Controle de estoque de frios</div>
     <div class="login-sub" id="login-step1-sub">Quem está acessando?</div>
 
     <div id="login-avatars" class="login-avatars">
@@ -254,8 +387,8 @@ tr:hover td{background:var(--bg3);}
       <input type="password" id="login-senha-input" class="login-senha-input" placeholder="Senha" autocomplete="off" onkeydown="if(event.key==='Enter')validarSenha()">
       <div id="login-senha-erro" class="login-senha-erro"></div>
       <div class="login-senha-botoes">
-        <button class="login-btn-voltar" onclick="voltarLogin()">‹ Voltar</button>
-        <button class="login-btn-entrar" onclick="validarSenha()">Entrar</button>
+        <button class="login-btn-voltar" onclick="voltarLogin()"><i class="ti ti-arrow-left"></i> Voltar</button>
+        <button class="login-btn-entrar" onclick="validarSenha()"><i class="ti ti-login-2"></i> Entrar</button>
       </div>
     </div>
 
@@ -265,49 +398,42 @@ tr:hover td{background:var(--bg3);}
 
 <div id="app-conteudo" class="app-conteudo-protegido"><div class="app">
 
-<div class="header-row">
-  <div style="display:flex;align-items:center;gap:10px;">
-    <svg class="app-logo" width="30" height="34" viewBox="0 0 200 230" xmlns="http://www.w3.org/2000/svg">
-      <path d="M100 8 L172 32 L172 108 Q172 178 100 218 Q28 178 28 108 L28 32 Z" fill="#2b2b2b" stroke="#e8241a" stroke-width="10" stroke-linejoin="round"/>
-      <g transform="translate(72,78)">
-        <path d="M0 8 L38 0 L52 9 L52 56 Q52 60 48 60 L4 60 Q0 60 0 56 Z" fill="#f2f6d8" stroke="#3a3a2a" stroke-width="2"/>
-        <circle cx="12" cy="19" r="3.6" fill="#2b2b2b"/>
-        <circle cx="33" cy="16" r="3" fill="#2b2b2b"/>
-        <circle cx="22" cy="35" r="3.2" fill="#2b2b2b"/>
-        <circle cx="41" cy="37" r="4" fill="#2b2b2b"/>
-        <circle cx="8" cy="45" r="2.6" fill="#2b2b2b"/>
-      </g>
-    </svg>
-    <div>
-    <div style="font-size:20px;font-weight:700;color:var(--text);line-height:1.2;">Escudo Padaria</div>
-    <div style="font-size:15px;font-weight:600;color:var(--text);margin-top:2px;">Sistema de controle de estoque de frios</div>
-    <div style="font-size:12px;color:var(--text2);margin-top:1px;" id="data-hora"></div>
+<header class="escudo-aura-header">
+  <div class="escudo-aura-brand">
+    <div class="escudo-tagline"><i class="ti ti-shopping-cart"></i><span>Supermercado Boas Compras</span><span class="escudo-badge">ESCUDO PADARIA</span></div>
+    <div class="escudo-title-row">
+      <div class="escudo-header-icon"><img src="escudo_padaria_aura_logo.png" alt="Escudo Padaria"></div>
+      <div>
+        <h1>ESTOQUE DE FRIOS</h1>
+        <p>Controle de lotes, entradas e baixas · v25 identidade AURA</p>
+      </div>
+    </div>
   </div>
+  <div class="escudo-aura-actions">
+    <div class="save-status aura-save-pill" id="save-status"><span class="status-dot" id="save-dot" style="background:#888;"></span><span id="save-txt">Conectando...</span></div>
+    <button class="aura-header-btn" onclick="exportarRelatorio()"><i class="ti ti-file-export"></i><span>Exportar relatório</span></button>
   </div>
-  <div style="display:flex;align-items:center;gap:12px;">
-    <div class="save-status" id="save-status"><span class="status-dot" id="save-dot" style="background:#888;"></span><span id="save-txt">Conectando...</span></div>
-    <button class="btn-primary" onclick="exportarRelatorio()">↗ Exportar relatório</button>
-  </div>
-</div>
+</header>
+<div class="escudo-syncbar"><i class="ti ti-clock"></i><span id="data-hora"></span></div>
 
 <div class="cards" id="summary-cards" style="grid-template-columns:repeat(4,1fr);margin-bottom:20px;">
-  <div class="card-m"><div class="label">Produtos cadastrados</div><div class="val val-white" id="s-total">—</div></div>
-  <div class="card-m"><div class="label">Estoque OK</div><div class="val val-green" id="s-ok">—</div></div>
-  <div class="card-m"><div class="label">Estoque baixo / zerado</div><div class="val val-yellow" id="s-low">—</div></div>
-  <div class="card-m"><div class="label">Validades críticas</div><div class="val val-white" id="s-venc">—</div></div>
+  <div class="card-m"><div class="label"><i class="ti ti-packages"></i> Produtos cadastrados</div><div class="val val-white" id="s-total">—</div></div>
+  <div class="card-m"><div class="label"><i class="ti ti-circle-check"></i> Estoque OK</div><div class="val val-green" id="s-ok">—</div></div>
+  <div class="card-m"><div class="label"><i class="ti ti-alert-triangle"></i> Estoque baixo / zerado</div><div class="val val-yellow" id="s-low">—</div></div>
+  <div class="card-m"><div class="label"><i class="ti ti-calendar-exclamation"></i> Validades críticas</div><div class="val val-white" id="s-venc">—</div></div>
 </div>
 
 <div class="tabs">
-  <button class="tab active" id="tab-estoque" onclick="switchTab('estoque')">⊞ Estoque & Cadastro</button>
-  <button class="tab" id="tab-entrada" onclick="switchTab('entrada')">+ Entrada</button>
-  <button class="tab" id="tab-baixa" onclick="switchTab('baixa')">⊟ Baixa</button>
-  <button class="tab" id="tab-precos" onclick="switchTab('precos')">$ Preços/kg</button>
-  <button class="tab" id="tab-historico" onclick="switchTab('historico')">↺ Histórico</button>
+  <button class="tab active" id="tab-estoque" onclick="switchTab('estoque')"><i class="ti ti-layout-dashboard"></i><span>Estoque & Cadastro</span></button>
+  <button class="tab" id="tab-entrada" onclick="switchTab('entrada')"><i class="ti ti-package-import"></i><span>Entrada</span></button>
+  <button class="tab" id="tab-baixa" onclick="switchTab('baixa')"><i class="ti ti-package-export"></i><span>Baixa</span></button>
+  <button class="tab" id="tab-precos" onclick="switchTab('precos')"><i class="ti ti-currency-real"></i><span>Preços/kg</span></button>
+  <button class="tab" id="tab-historico" onclick="switchTab('historico')"><i class="ti ti-history"></i><span>Histórico</span></button>
 </div>
 
 <div class="section active" id="sec-estoque">
   <div style="display:flex;justify-content:flex-end;margin-bottom:10px;">
-    <button class="btn-primary" onclick="toggleCadastro()" id="btn-toggle-cadastro">+ Novo Produto</button>
+    <button class="btn-primary" onclick="toggleCadastro()" id="btn-toggle-cadastro"><i class="ti ti-plus"></i> Novo Produto</button>
   </div>
   <div class="form-card" id="form-cadastro" style="margin-bottom:16px;display:none;">
     <h3>Cadastrar Novo Produto</h3>
@@ -326,9 +452,10 @@ tr:hover td{background:var(--bg3);}
       <div class="field"><label>Estoque Mínimo Alerta</label><input type="number" id="add-min" value="1.0" step="0.001" min="0"></div>
       <div class="field"><label>Estoque Inicial Atual</label><input type="number" id="add-saldo" value="0.0" step="0.001" min="0"></div>
     </div>
-    <button class="btn-primary" onclick="adicionarProduto()">+ Adicionar Produto ao Banco</button>
+    <button class="btn-primary" onclick="adicionarProduto()"><i class="ti ti-database-plus"></i> Adicionar Produto ao Banco</button>
   </div>
 
+  <div class="dashboard-lotes-regra">Dashboard automático: lotes zerados são ocultados e cada produto mostra os 2 lotes ativos mais recentes.</div>
   <div id="estoque-cards"></div>
 </div>
 
@@ -356,7 +483,7 @@ tr:hover td{background:var(--bg3);}
       </div>
     </div>
     <div style="display:flex;align-items:center;gap:12px;margin-top:4px;">
-      <button class="btn-primary" onclick="registrarEntrada()">Confirmar entrada</button>
+      <button class="btn-primary" onclick="registrarEntrada()"><i class="ti ti-package-import"></i> Confirmar entrada</button>
       <span style="font-size:12px;color:var(--text3);">Se a validade for nova, um novo lote independente será criado.</span>
     </div>
   </div>
@@ -395,7 +522,7 @@ tr:hover td{background:var(--bg3);}
         <input type="text" id="baixa-resp" placeholder="Nome do atendente">
       </div>
     </div>
-    <button class="btn-primary" onclick="registrarBaixa()">Confirmar baixa</button>
+    <button class="btn-primary" onclick="registrarBaixa()"><i class="ti ti-package-export"></i> Confirmar baixa</button>
   </div>
   <div class="form-card" style="margin-top:0;">
     <h3>Padrão EAN-13 da sua balança</h3>
@@ -429,7 +556,7 @@ tr:hover td{background:var(--bg3);}
 <div class="section" id="sec-historico">
   <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;flex-wrap:wrap;gap:8px;">
     <span style="font-size:13px;font-weight:600;">Movimentações</span>
-    <button class="btn-danger" onclick="limparHistorico()">Histórico protegido</button>
+    <button class="btn-danger" onclick="limparHistorico()"><i class="ti ti-shield-lock"></i> Histórico protegido</button>
   </div>
 
   <div class="form-card" style="margin-bottom:12px;padding:10px 14px;">
@@ -455,7 +582,7 @@ tr:hover td{background:var(--bg3);}
         <label>Até</label>
         <input type="date" id="hist-f-ate" onchange="renderHistorico()">
       </div>
-      <button class="btn-sm" style="margin:0;height:34px;" onclick="limparFiltrosHistorico()">Limpar filtros</button>
+      <button class="btn-sm" style="margin:0;height:34px;" onclick="limparFiltrosHistorico()"><i class="ti ti-filter-off"></i> Limpar filtros</button>
     </div>
   </div>
 
@@ -479,6 +606,9 @@ tr:hover td{background:var(--bg3);}
 </div>
 
 <script>
+const ESCUDO_FRIOS_BUILD='v25-aura-logo-escudo-padaria';
+console.info('[Escudo Frios]',ESCUDO_FRIOS_BUILD);
+
 const PRODUTOS_BASE=[
   {codigo:'79', nome:'PRESUNTO FATIADO',        precoKg:34.99, saldo:10.300, validade:'2026-07-13', min:1.0, unidade:'kg'},
   {codigo:'206',nome:'MORTADELA BOLONHA KG',    precoKg:33.99, saldo:0.000,  validade:'',           min:1.0, unidade:'kg'},
@@ -505,78 +635,101 @@ function setSaveStatus(txt,cor){
   document.getElementById('save-dot').style.background=cor;
 }
 
-let pollingInterval = null;
-
-function carregar(){
-  setSaveStatus('Conectando à planilha...','#888');
-  fetch(SHEETS_API_URL)
-    .then(r => r.json())
-    .then(dados => {
-      estoque = (dados.estoque && dados.estoque.length) ? dados.estoque : PRODUTOS_BASE.map(p => ({...p}));
-      estoque = estoque.map(p => {
-        if (p.precoKg === undefined || p.precoKg === '') {
-          const base = PRODUTOS_BASE.find(b => b.codigo === p.codigo);
-          p.precoKg = base ? base.precoKg : 0;
-        }
-        return p;
-      });
-      historico = dados.historico || [];
-
-      // Se a planilha veio totalmente vazia, inicializa com os produtos padrão
-      if (!dados.estoque || !dados.estoque.length) {
-        salvar();
-      }
-
-      popularSelect();
-      renderEstoque();
-      renderPrecos();
-      renderHistorico();
-      atualizarSummary();
-      setSaveStatus('Online ✓', '#4caf50');
-
-      if (!pollingInterval) {
-        pollingInterval = setInterval(sincronizar, 20000); // re-sincroniza a cada 20s
-      }
-    })
-    .catch(e => {
-      console.error('Erro ao carregar da planilha:', e);
-      setSaveStatus('Erro de conexão', '#e05252');
-    });
+function usuarioAtual(){
+  return storageGet(LOGIN_STORAGE_KEY)||'Usuário';
 }
 
-function sincronizar(){
-  if (salvando) return; // evita sobrescrever uma edição em andamento
-  fetch(SHEETS_API_URL)
-    .then(r => r.json())
-    .then(dados => {
-      estoque = dados.estoque || [];
-      historico = dados.historico || [];
-      popularSelect();
-      renderEstoque();
-      renderPrecos();
-      renderHistorico();
-      atualizarSummary();
-      setSaveStatus('Online ✓', '#4caf50');
-    })
-    .catch(e => console.error('Erro na sincronização periódica:', e));
+function aplicarDadosServidor(dados){
+  estoque=(dados&&Array.isArray(dados.estoque)?dados.estoque:[]).map(p=>{
+    if(p.precoKg===undefined||p.precoKg===''){
+      const base=PRODUTOS_BASE.find(b=>String(b.codigo)===String(p.codigo));
+      p.precoKg=base?base.precoKg:0;
+    }
+    return p;
+  });
+  historico=(dados&&Array.isArray(dados.historico)?dados.historico:[]);
+  popularSelect();
+  renderEstoque();
+  renderPrecos();
+  renderHistorico();
+  atualizarSummary();
 }
 
-async function salvar(){
-  if(salvando)return;
+async function apiGetDados(){
+  const sep=SHEETS_API_URL.includes('?')?'&':'?';
+  const r=await fetch(SHEETS_API_URL+sep+'_ts='+Date.now(),{cache:'no-store'});
+  const txt=await r.text();
+  let dados;
+  try{dados=JSON.parse(txt);}catch(e){throw new Error('Resposta inválida do servidor.');}
+  if(dados&&dados.ok===false)throw new Error(dados.erro||'Falha ao consultar o servidor.');
+  return dados||{};
+}
+
+async function apiPostAcao(action,payload){
+  if(salvando)throw new Error('Há outra operação sendo gravada. Aguarde alguns segundos.');
   salvando=true;
   setSaveStatus('Salvando...','#888');
   try{
-    await fetch(SHEETS_API_URL, {
-      method: 'POST',
-      headers: {'Content-Type': 'text/plain;charset=utf-8'}, // evita preflight CORS no Apps Script
-      body: JSON.stringify({estoque, historico})
+    const corpo=Object.assign({action},payload||{});
+    const r=await fetch(SHEETS_API_URL,{
+      method:'POST',
+      headers:{'Content-Type':'text/plain;charset=utf-8'},
+      body:JSON.stringify(corpo)
     });
+    const txt=await r.text();
+    let dados;
+    try{dados=JSON.parse(txt);}catch(e){throw new Error('O servidor retornou uma resposta inválida.');}
+    if(!dados||dados.ok!==true)throw new Error((dados&&dados.erro)||'A operação não foi confirmada pelo servidor.');
+    aplicarDadosServidor(dados);
     setSaveStatus('Salvo ✓','#4caf50');
+    return dados;
   }catch(e){
-    console.error('Erro ao salvar na planilha:',e);
+    console.error('Erro na operação '+action,e);
     setSaveStatus('Erro ao salvar','#e05252');
+    throw e;
+  }finally{
+    salvando=false;
   }
-  salvando=false;
+}
+
+let pollingInterval = null;
+
+async function carregar(){
+  setSaveStatus('Conectando à planilha...','#888');
+  try{
+    let dados=await apiGetDados();
+    if(!dados.estoque||!dados.estoque.length){
+      dados=await apiPostAcao('inicializarBase',{produtos:PRODUTOS_BASE,resp:'Sistema'});
+    }else{
+      aplicarDadosServidor(dados);
+      setSaveStatus('Online ✓','#4caf50');
+    }
+    if(!pollingInterval)pollingInterval=setInterval(sincronizar,20000);
+  }catch(e){
+    console.error('Erro ao carregar da planilha:',e);
+    setSaveStatus('Erro de conexão','#e05252');
+    alert('Não foi possível carregar o estoque: '+e.message);
+  }
+}
+
+async function sincronizar(){
+  if(salvando||document.hidden)return;
+  const ativo=document.activeElement;
+  if(ativo&&/^(INPUT|SELECT|TEXTAREA)$/.test(ativo.tagName))return; // não apaga formulário em edição
+  try{
+    const dados=await apiGetDados();
+    aplicarDadosServidor(dados);
+    setSaveStatus('Online ✓','#4caf50');
+  }catch(e){
+    console.error('Erro na sincronização periódica:',e);
+  }
+}
+
+async function salvar(){
+  // v23: mantida apenas como proteção de compatibilidade.
+  // O navegador não envia mais o banco inteiro ao servidor.
+  console.warn('salvar() global foi desativado na v23; use uma ação transacional.');
+  return sincronizar();
 }
 
 function switchTab(t){
@@ -635,6 +788,29 @@ function fmtHora(ts){
   return d.toLocaleDateString('pt-BR')+' '+d.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
 }
 
+const DASH_MAX_LOTES_POR_PRODUTO = 2;
+const _dashboardLotesExpandidos = new Set();
+
+function _loteRecencia_(it, idx){
+  const ts=Number(it && it.atualizadoEm);
+  if(Number.isFinite(ts) && ts>0)return ts;
+  const data=String((it&&it.dataEntrada)||'').trim();
+  const base=data ? Date.parse(data+'T12:00:00') : 0;
+  // O índice desempata entradas feitas no mesmo dia: lotes novos são inseridos no fim do array.
+  return (Number.isFinite(base)?base:0) + (Number(idx)||0);
+}
+
+function _marcarLoteAtualizado_(lote){
+  if(lote) lote.atualizadoEm=Date.now();
+}
+
+function toggleLotesDashboard(codigo){
+  codigo=String(codigo||'');
+  if(_dashboardLotesExpandidos.has(codigo))_dashboardLotesExpandidos.delete(codigo);
+  else _dashboardLotesExpandidos.add(codigo);
+  renderEstoque();
+}
+
 function renderEstoque(){
   const cont=document.getElementById('estoque-cards');
 
@@ -643,48 +819,56 @@ function renderEstoque(){
     return;
   }
 
-  // Agrupa os lotes (linhas do array) por código de produto
+  // Agrupa todos os lotes por produto. Nada é apagado do banco/histórico aqui:
+  // o dashboard apenas oculta lotes zerados e limita a visualização inicial.
   const grupos={};
   const ordem=[];
   estoque.forEach((p,i)=>{
     if(!grupos[p.codigo]){
-      grupos[p.codigo]={codigo:p.codigo,nome:p.nome,unidade:p.unidade||'kg',min:p.min,itens:[]};
+      grupos[p.codigo]={codigo:p.codigo,nome:p.nome,unidade:p.unidade||'kg',min:Number(p.min)||0,itens:[]};
       ordem.push(p.codigo);
     }
     grupos[p.codigo].itens.push({...p, idx:i});
   });
 
-  cont.innerHTML=ordem.map(cod=>{
+  let gruposVisiveis=0;
+  const html=ordem.map(cod=>{
     const g=grupos[cod];
     const und=g.unidade;
-    const total=g.itens.reduce((s,it)=>s+it.saldo,0);
 
+    // Regra 1: saldo <= 0 sai da tela inicial automaticamente.
+    const ativos=g.itens.filter(it=>Number(it.saldo)>0);
+    if(!ativos.length)return '';
+    gruposVisiveis++;
+
+    // O total do card considera TODOS os lotes ativos, inclusive os antigos ocultos.
+    const total=ativos.reduce((s,it)=>s+(Number(it.saldo)||0),0);
     let totalBadge;
-    if(total<=0)totalBadge='<span class="badge b-zero">Zerado</span>';
-    else if(total<g.min)totalBadge='<span class="badge b-low">Baixo</span>';
+    if(total<g.min)totalBadge='<span class="badge b-low">Baixo</span>';
     else totalBadge='<span class="badge b-ok">OK</span>';
 
-    // Ordena lotes: vencidos/vencendo primeiro, depois por validade
-    const itensOrdenados=[...g.itens].sort((a,b)=>{
-      if(!a.validade && !b.validade)return 0;
-      if(!a.validade)return 1;
-      if(!b.validade)return -1;
-      return new Date(a.validade)-new Date(b.validade);
+    // Regra 2: mais recentemente inseridos/atualizados primeiro.
+    const ativosOrdenados=[...ativos].sort((a,b)=>{
+      const rb=_loteRecencia_(b,b.idx), ra=_loteRecencia_(a,a.idx);
+      if(rb!==ra)return rb-ra;
+      return Number(b.idx)-Number(a.idx);
     });
 
-    const lotesHtml=itensOrdenados.map(it=>{
+    const expandido=_dashboardLotesExpandidos.has(String(cod));
+    const itensVisiveis=expandido ? ativosOrdenados : ativosOrdenados.slice(0,DASH_MAX_LOTES_POR_PRODUTO);
+    const ocultos=Math.max(0,ativosOrdenados.length-itensVisiveis.length);
+
+    const lotesHtml=itensVisiveis.map(it=>{
       const sv=statusVal(it.validade);
       let vBadge='';
       if(sv==='vencido')vBadge='<span class="badge b-venc">Vencido</span>';
       else if(sv==='vencendo')vBadge='<span class="badge b-low">Vence em breve</span>';
 
-      let qtdBadge='';
-      if(it.saldo<=0)qtdBadge='<span class="badge b-zero">Zerado</span>';
-      else if(it.saldo<g.min)qtdBadge='<span class="badge b-low">Baixo</span>';
+      const qtdBadge=(Number(it.saldo)<g.min)?'<span class="badge b-low">Baixo</span>':'';
 
       return`<div class="lote-card">
         <div class="lote-top">
-          <span class="lote-qtd">${it.saldo.toFixed(3)} ${und}</span>
+          <span class="lote-qtd">${Number(it.saldo).toFixed(3)} ${und}</span>
           ${qtdBadge}
         </div>
         <div class="lote-info">
@@ -694,9 +878,8 @@ function renderEstoque(){
           <div class="li-row"><span class="li-label">Preço/kg</span><span>${it.precoKg?('R$ '+Number(it.precoKg).toFixed(2)):'—'}</span></div>
         </div>
         <div class="lote-actions">
-          <button class="btn-sm" onclick="editarValidade(${it.idx})">Validade</button>
-          <button class="btn-sm" onclick="corrigirSaldo(${it.idx})">Saldo</button>
-          <button class="btn-sm" style="background:var(--red-bg);color:var(--red-text);border-color:#5a2a2a;" onclick="excluirProduto(${it.idx})">Excluir</button>
+          <button class="btn-sm" onclick="editarValidade(${it.idx})"><i class="ti ti-calendar"></i> Validade</button>
+          <button class="btn-sm" onclick="corrigirSaldo(${it.idx})"><i class="ti ti-adjustments-horizontal"></i> Saldo</button>
         </div>
       </div>`;
     }).join('');
@@ -707,84 +890,74 @@ function renderEstoque(){
       ? `<img src="${foto}" alt="${g.nome}" class="produto-foto" style="border-color:${cat.cor}66;">`
       : `<span class="produto-icone" style="background:${cat.cor}22;color:${cat.cor};">${cat.icone}</span>`;
 
+    const codUrl=encodeURIComponent(String(cod));
+    const controleLotes=ativosOrdenados.length>DASH_MAX_LOTES_POR_PRODUTO
+      ? `<div class="lotes-ocultos-info">
+          <span>${expandido?'Todos os '+ativosOrdenados.length+' lotes ativos estão visíveis':ocultos+' lote'+(ocultos!==1?'s':'')+' ativo'+(ocultos!==1?'s':'')+' anterior'+(ocultos!==1?'es':'')+' oculto'+(ocultos!==1?'s':'')+' da tela inicial'}</span>
+          <button class="btn-sm" onclick="toggleLotesDashboard(decodeURIComponent('${codUrl}'))"><i class="ti ${expandido?'ti-chevron-up':'ti-list-details'}"></i> ${expandido?'Mostrar só os 2 mais recentes':'Ver todos ('+ativosOrdenados.length+')'}</button>
+        </div>`
+      : '';
+
     return`<div class="produto-group" style="border-top:3px solid ${cat.cor};">
       <div class="produto-header">
         ${iconeHtml}
         <div class="produto-header-info">
           <div class="produto-nome">${g.nome}</div>
-          <div class="produto-cod">Código ${g.codigo} · ${g.itens.length} lote${g.itens.length>1?'s':''}</div>
+          <div class="produto-cod">Código ${g.codigo} · ${ativosOrdenados.length} lote${ativosOrdenados.length>1?'s':''} ativo${ativosOrdenados.length>1?'s':''}</div>
           <div class="produto-total">
             <div class="produto-total-val" style="color:${cat.cor};">${total.toFixed(3)} ${und}</div>
             ${totalBadge}
           </div>
         </div>
         <div class="produto-header-actions">
-          <button class="btn-sm" onclick="editarProduto(${g.itens[0].idx})">Editar</button>
+          <button class="btn-sm" onclick="editarProduto(${g.itens[0].idx})"><i class="ti ti-pencil"></i> Editar</button>
         </div>
       </div>
       <div class="lote-cards">${lotesHtml}</div>
+      ${controleLotes}
     </div>`;
   }).join('');
+
+  cont.innerHTML=gruposVisiveis
+    ? html
+    : '<div class="produto-empty">Nenhum lote com saldo positivo no momento. Os produtos continuam cadastrados e disponíveis para novas entradas.</div>';
 }
 
-function editarValidade(i){
-  const v=prompt('Validade para '+estoque[i].nome+'\n(formato: dd/mm/aaaa)',fmtData(estoque[i].validade));
+async function editarValidade(i){
+  const p=estoque[i];
+  if(!p||!p.loteId)return alert('Lote sem identificador. Atualize a página e tente novamente.');
+  const v=prompt('Validade para '+p.nome+'\n(formato: dd/mm/aaaa)',fmtData(p.validade));
   if(!v)return;
   const pts=v.split('/');
-  if(pts.length===3){estoque[i].validade=pts[2]+'-'+pts[1]+'-'+pts[0];salvar();renderEstoque();atualizarSummary();}
+  if(pts.length!==3)return alert('Use o formato dd/mm/aaaa.');
+  const iso=pts[2]+'-'+pts[1].padStart(2,'0')+'-'+pts[0].padStart(2,'0');
+  try{await apiPostAcao('editarValidade',{loteId:p.loteId,validade:iso,resp:usuarioAtual()});}
+  catch(e){alert('Não foi possível alterar a validade: '+e.message);}
 }
 
-function editarProduto(i){
+async function editarProduto(i){
   const p=estoque[i];
-  const novoNome=prompt('Editar nome do produto:',p.nome);
-  if(novoNome===null)return;
-  const novoMinStr=prompt('Editar estoque mínimo:',p.min);
-  if(novoMinStr===null)return;
-  const novoMin=parseFloat(novoMinStr);
-  if(isNaN(novoMin))return alert('Estoque mínimo inválido.');
-  const novaUnidade=prompt('Editar unidade (ex: kg, un, pct):',p.unidade||'kg');
-  if(novaUnidade===null)return;
-
-  const codProd = p.codigo;
-  // Sincroniza o novo nome/mínimo/unidade em todos os lotes com o mesmo código
-  estoque.forEach(item => {
-    if(item.codigo === codProd){
-      item.nome=novoNome.trim().toUpperCase()||item.nome;
-      item.min=novoMin;
-      item.unidade=novaUnidade.trim().toLowerCase()||'kg';
-    }
-  });
-
-  popularSelect();
-  salvar();renderEstoque();atualizarSummary();
+  if(!p)return;
+  const novoNome=prompt('Editar nome do produto:',p.nome); if(novoNome===null)return;
+  const novoMinStr=prompt('Editar estoque mínimo:',p.min); if(novoMinStr===null)return;
+  const novoMin=parseFloat(novoMinStr); if(isNaN(novoMin))return alert('Estoque mínimo inválido.');
+  const novaUnidade=prompt('Editar unidade (ex: kg, un, pct):',p.unidade||'kg'); if(novaUnidade===null)return;
+  try{
+    await apiPostAcao('editarProduto',{codigo:String(p.codigo),nome:novoNome.trim().toUpperCase()||p.nome,min:novoMin,unidade:novaUnidade.trim().toLowerCase()||'kg',resp:usuarioAtual()});
+  }catch(e){alert('Não foi possível editar o produto: '+e.message);}
 }
 
-function corrigirSaldo(i){
+async function corrigirSaldo(i){
   const p=estoque[i];
+  if(!p||!p.loteId)return alert('Lote sem identificador. Atualize a página e tente novamente.');
   const und=p.unidade||'kg';
-  const novoSaldoStr=prompt(`Corrigir saldo de ${p.nome} (Lote: ${fmtData(p.validade)}) de ${p.saldo.toFixed(3)} ${und} para:`,p.saldo);
+  const novoSaldoStr=prompt(`Corrigir saldo de ${p.nome} (Lote: ${fmtData(p.validade)}) de ${Number(p.saldo).toFixed(3)} ${und} para:`,p.saldo);
   if(novoSaldoStr===null)return;
   const novoSaldo=parseFloat(novoSaldoStr);
-  if(isNaN(novoSaldo))return alert('Saldo informado é inválido.');
-  const resp=prompt('Responsável / Motivo do ajuste manual:','');
-
-  const antigoSaldo=p.saldo;
-  const diff=novoSaldo-antigoSaldo;
-  p.saldo=novoSaldo;
-
-  const totalConsolidado = estoque.filter(item => item.codigo === p.codigo).reduce((sum, item) => sum + item.saldo, 0);
-
-  historico.push({
-    ts:Date.now(),
-    tipo:diff>=0?'entrada':'baixa',
-    codigo:p.codigo,
-    nome:p.nome + (p.validade ? ' (LOTE '+fmtData(p.validade)+')' : ''),
-    peso:Math.abs(diff),
-    saldoApos:totalConsolidado,
-    resp:(resp?(resp+' (Ajuste)'):'Ajuste manual')
-  });
-
-  salvar();renderEstoque();atualizarSummary();renderHistorico();
+  if(isNaN(novoSaldo)||novoSaldo<0)return alert('Saldo informado é inválido.');
+  const motivo=prompt('Responsável / Motivo do ajuste manual:',usuarioAtual())||usuarioAtual();
+  try{await apiPostAcao('corrigirSaldo',{loteId:p.loteId,novoSaldo,resp:motivo});}
+  catch(e){alert('Não foi possível corrigir o saldo: '+e.message);}
 }
 
 function renderPrecos(){
@@ -806,7 +979,7 @@ function renderPrecos(){
           <div style="display:flex;gap:6px;align-items:center;">
             <input type="number" id="preco-inp-${i}" placeholder="ex: 29.90" step="0.01" min="0" value="${preco>0?preco:''}"
               style="width:110px;background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:5px 8px;border-radius:4px;font-size:13px;">
-            <button class="btn-primary" style="padding:5px 14px;font-size:12px;" onclick="salvarPreco(${i})">Salvar</button>
+            <button class="btn-primary" style="padding:5px 14px;font-size:12px;" onclick="salvarPreco(${i})"><i class="ti ti-device-floppy"></i> Salvar</button>
           </div>
         </td>
       </tr>`;
@@ -815,21 +988,13 @@ function renderPrecos(){
   tb.innerHTML = html;
 }
 
-function salvarPreco(i){
+async function salvarPreco(i){
   const inp=document.getElementById('preco-inp-'+i);
   const val=parseFloat(inp.value);
   if(isNaN(val)||val<0)return alert('Preço inválido.');
-  
-  const codProd = estoque[i].codigo;
-  // Aplica o preço atualizado para todos os lotes ativos daquele mesmo produto
-  estoque.forEach(p => {
-    if(p.codigo === codProd) p.precoKg=val;
-  });
-
-  salvar();renderPrecos();
-  // feedback visual
-  inp.style.borderColor='var(--green)';
-  setTimeout(()=>{inp.style.borderColor='var(--border)';},1500);
+  const p=estoque[i]; if(!p)return;
+  try{await apiPostAcao('salvarPreco',{codigo:String(p.codigo),precoKg:val,resp:usuarioAtual()});}
+  catch(e){alert('Não foi possível salvar o preço: '+e.message);}
 }
 
 function toggleCadastro(){
@@ -837,48 +1002,55 @@ function toggleCadastro(){
   const btn = document.getElementById('btn-toggle-cadastro');
   const aberto = painel.style.display !== 'none';
   painel.style.display = aberto ? 'none' : 'block';
-  btn.textContent = aberto ? '+ Novo Produto' : '✕ Fechar';
+  btn.innerHTML = aberto ? '<i class="ti ti-plus"></i> Novo Produto' : '<i class="ti ti-x"></i> Fechar';
 }
 
-function adicionarProduto(){
+async function adicionarProduto(){
   const cod=document.getElementById('add-codigo').value.trim();
   const nome=document.getElementById('add-nome').value.trim().toUpperCase();
   const und=document.getElementById('add-unidade').value;
   const min=parseFloat(document.getElementById('add-min').value)||0;
   const saldo=parseFloat(document.getElementById('add-saldo').value)||0;
-
   if(!cod||!nome)return alert('Código e Nome do produto são obrigatórios.');
-  if(estoque.some(p=>p.codigo===cod))return alert('Já existe um produto com esse código no sistema.');
-
-  estoque.push({codigo:cod,nome,unidade:und,min,saldo,validade:'',precoKg:0,dataEntrada:new Date().toISOString().slice(0,10)});
-
-  document.getElementById('add-codigo').value='';
-  document.getElementById('add-nome').value='';
-  document.getElementById('add-min').value='1.0';
-  document.getElementById('add-saldo').value='0.0';
-
-  popularSelect();
-  salvar();renderEstoque();renderPrecos();atualizarSummary();
-  toggleCadastro();
+  try{
+    await apiPostAcao('adicionarProduto',{codigo:cod,nome,unidade:und,min,saldo,resp:usuarioAtual()});
+    document.getElementById('add-codigo').value='';
+    document.getElementById('add-nome').value='';
+    document.getElementById('add-min').value='1.0';
+    document.getElementById('add-saldo').value='0.0';
+    toggleCadastro();
+  }catch(e){alert('Não foi possível cadastrar o produto: '+e.message);}
 }
 
-function excluirProduto(i){
-  if(confirm(`Tem certeza que deseja REMOVER este lote de ${estoque[i].nome} permanentemente?`)){
-    estoque.splice(i,1);
-    popularSelect();
-    salvar();renderEstoque();atualizarSummary();
-  }
+async function excluirProduto(i){
+  const p=estoque[i];
+  if(!p||!p.loteId)return;
+  if(Number(p.saldo)!==0)return alert('Por segurança, um lote com saldo não pode ser excluído. Zere o saldo primeiro.');
+  if(!confirm(`Arquivar o lote zerado de ${p.nome}?\n\nEle continuará preservado na planilha e na auditoria.`))return;
+  try{await apiPostAcao('arquivarLote',{loteId:p.loteId,resp:usuarioAtual()});}
+  catch(e){alert('Não foi possível arquivar o lote: '+e.message);}
 }
 
 function atualizarSummary(){
-  const total=estoque.length; // total de lotes
-  const produtosUnicos=new Set(estoque.map(p=>p.codigo)).size; // total de produtos distintos
-  const zeros=estoque.filter(p=>p.saldo<=0).length;
-  const baixos=estoque.filter(p=>p.saldo>0&&p.saldo<p.min).length;
-  const venc=estoque.filter(p=>{const s=statusVal(p.validade);return s==='vencido'||s==='vencendo';}).length;
+  // Indicadores por PRODUTO (não por linha/lote), evitando que lotes zerados antigos
+  // inflem os números do dashboard.
+  const grupos={};
+  estoque.forEach(p=>{
+    const cod=String(p.codigo||'');
+    if(!grupos[cod])grupos[cod]={total:0,min:Number(p.min)||0};
+    grupos[cod].total+=Number(p.saldo)||0;
+    if(Number(p.min)>0)grupos[cod].min=Number(p.min);
+  });
+  const produtos=Object.values(grupos);
+  const produtosUnicos=produtos.length;
+  const zerados=produtos.filter(g=>g.total<=0).length;
+  const baixos=produtos.filter(g=>g.total>0&&g.total<g.min).length;
+  const ok=produtos.filter(g=>g.total>0&&g.total>=g.min).length;
+  // Validade crítica conta somente lotes que ainda possuem saldo positivo.
+  const venc=estoque.filter(p=>Number(p.saldo)>0&&(()=>{const st=statusVal(p.validade);return st==='vencido'||st==='vencendo';})()).length;
   document.getElementById('s-total').textContent=produtosUnicos;
-  document.getElementById('s-ok').textContent=total-zeros-baixos;
-  document.getElementById('s-low').textContent=zeros+baixos;
+  document.getElementById('s-ok').textContent=ok;
+  document.getElementById('s-low').textContent=zerados+baixos;
   const vEl=document.getElementById('s-venc');
   vEl.textContent=venc;
   vEl.className='val '+(venc>0?'val-red':'val-white');
@@ -887,28 +1059,25 @@ function atualizarSummary(){
 function popularSelect(){
   const sel=document.getElementById('ent-produto');
   const selBaixa=document.getElementById('baixa-produto');
-  if(sel) sel.innerHTML='<option value="">Selecione...</option>';
-  if(selBaixa) selBaixa.innerHTML='<option value="">Selecione...</option>';
+  const valorEnt=sel?sel.value:'';
+  const valorBaixa=selBaixa?selBaixa.value:'';
+  if(sel)sel.innerHTML='<option value="">Selecione...</option>';
+  if(selBaixa)selBaixa.innerHTML='<option value="">Selecione...</option>';
   const vistos=new Set();
-  estoque.forEach((p,i)=>{
-    // Garante que os seletores mostrem apenas uma vez cada produto/código
-    if(!vistos.has(p.codigo)){
-      vistos.add(p.codigo);
-      if(sel){
-        const o=document.createElement('option');
-        o.value=i;o.textContent=p.nome;sel.appendChild(o);
-      }
-      if(selBaixa){
-        const ob=document.createElement('option');
-        ob.value=p.codigo;ob.textContent=p.nome+' — cód. '+p.codigo;selBaixa.appendChild(ob);
-      }
-    }
+  estoque.forEach(p=>{
+    const cod=String(p.codigo||'');
+    if(vistos.has(cod))return;
+    vistos.add(cod);
+    if(sel){const o=document.createElement('option');o.value=cod;o.textContent=p.nome;sel.appendChild(o);}
+    if(selBaixa){const o=document.createElement('option');o.value=cod;o.textContent=p.nome+' — cód. '+cod;selBaixa.appendChild(o);}
   });
+  if(sel&&[...sel.options].some(o=>o.value===valorEnt))sel.value=valorEnt;
+  if(selBaixa&&[...selBaixa.options].some(o=>o.value===valorBaixa))selBaixa.value=valorBaixa;
 }
 
 function preencherEntrada(){
-  const i=document.getElementById('ent-produto').value;
-  document.getElementById('ent-codigo').value=i===''?'':estoque[i].codigo;
+  const cod=document.getElementById('ent-produto').value;
+  document.getElementById('ent-codigo').value=cod||'';
 }
 
 function mostrarMsg(id,tipo,txt){
@@ -925,59 +1094,21 @@ function totalProduto(codigo){
   return Math.round(estoque.filter(p=>p.codigo===codigo).reduce((s,p)=>s+(Number(p.saldo)||0),0)*1000)/1000;
 }
 
-function registrarEntrada(){
-  const idx=document.getElementById('ent-produto').value;
+async function registrarEntrada(){
+  const codigo=document.getElementById('ent-produto').value;
   const peso=parseFloat(document.getElementById('ent-peso').value);
   const val=document.getElementById('ent-validade').value;
-  const resp=document.getElementById('ent-resp').value.trim();
-  if(idx==='')return mostrarMsg('msg-entrada','msg-err','Selecione o produto.');
+  const resp=document.getElementById('ent-resp').value.trim()||usuarioAtual();
+  if(!codigo)return mostrarMsg('msg-entrada','msg-err','Selecione o produto.');
   if(!peso||peso<=0)return mostrarMsg('msg-entrada','msg-err','Informe um peso válido.');
-  const i=parseInt(idx);
-  const baseProd=estoque[i];
-  const und=baseProd.unidade||'kg';
-
-  // Verifica se já existe um lote com o MESMO código e a MESMA validade exata
-  let loteExistente = estoque.find(p => p.codigo === baseProd.codigo && p.validade === val);
-
-  const hoje = new Date().toISOString().slice(0,10);
-
-  if (loteExistente) {
-    loteExistente.saldo = Math.round((loteExistente.saldo + peso) * 1000) / 1000;
-    loteExistente.dataEntrada = hoje;
-  } else {
-    // Se a validade for diferente e a linha atual já possuir estoque, gera um novo lote (nova linha)
-    if (baseProd.saldo > 0 && val && baseProd.validade !== val) {
-      estoque.push({
-        codigo: baseProd.codigo,
-        nome: baseProd.nome,
-        unidade: baseProd.unidade || 'kg',
-        min: baseProd.min || 1.0,
-        precoKg: baseProd.precoKg || 0,
-        saldo: peso,
-        validade: val,
-        dataEntrada: hoje
-      });
-    } else {
-      // Se a linha atual estiver zerada ou sem validade, reaproveita a linha existente
-      baseProd.saldo = Math.round((baseProd.saldo + peso) * 1000) / 1000;
-      if (val) baseProd.validade = val;
-      baseProd.dataEntrada = hoje;
-    }
-  }
-
-  // Calcula o total consolidado global de todos os lotes juntos para registrar no histórico
-  const totalConsolidado = estoque.filter(p => p.codigo === baseProd.codigo).reduce((sum, p) => sum + p.saldo, 0);
-
-  historico.push({
-    id:gerarIdMov(),ts:Date.now(),tipo:'entrada',codigo:baseProd.codigo,nome:baseProd.nome,peso,
-    saldoApos:totalConsolidado,resp,validadeMov:val||'',estornado:false
-  });
-  
-  popularSelect();
-  salvar();renderEstoque();atualizarSummary();renderHistorico();renderPrecos();
-  mostrarMsg('msg-entrada','msg-ok','✓ Entrada de '+peso.toFixed(3)+' '+und+' registrada.');
-  document.getElementById('ent-peso').value='';
-  document.getElementById('ent-validade').value='';
+  const prod=estoque.find(p=>String(p.codigo)===String(codigo));
+  const und=prod?(prod.unidade||'kg'):'kg';
+  try{
+    const dados=await apiPostAcao('registrarEntrada',{codigo:String(codigo),peso,validade:val||'',resp});
+    mostrarMsg('msg-entrada','msg-ok','✓ Entrada de '+peso.toFixed(3)+' '+und+' registrada. Saldo total: '+Number(dados.saldoApos||0).toFixed(3)+' '+und+'.');
+    document.getElementById('ent-peso').value='';
+    document.getElementById('ent-validade').value='';
+  }catch(e){mostrarMsg('msg-entrada','msg-err',e.message);}
 }
 
 function selecionarProdutoBaixa(){
@@ -1071,66 +1202,27 @@ function parsearUPC(){
   box.classList.add('show');
 }
 
-function registrarBaixa(){
+async function registrarBaixa(){
   const d=obterDadosBaixa();
-  const resp=document.getElementById('baixa-resp').value.trim();
-
+  const resp=document.getElementById('baixa-resp').value.trim()||usuarioAtual();
   if(!d.prod){
-    if(!d.upc && !d.codSelecionado)return mostrarMsg('msg-baixa','msg-err','Selecione o produto ou informe o código UPC.');
+    if(!d.upc&&!d.codSelecionado)return mostrarMsg('msg-baixa','msg-err','Selecione o produto ou informe o código UPC.');
     return mostrarMsg('msg-baixa','msg-err','Produto não encontrado. Código: '+(d.codInt||d.upc));
   }
   if(d.erro)return mostrarMsg('msg-baixa','msg-err',d.erro);
   if(!d.pesoKg||d.pesoKg<=0)return mostrarMsg('msg-baixa','msg-err','Informe a quantidade/peso ou o valor total da baixa.');
-
-  // Obtém todos os lotes do produto selecionado/identificado
-  let lotes = estoque.filter(p => p.codigo === d.prod.codigo);
-  if(lotes.length === 0)return mostrarMsg('msg-baixa','msg-err','Produto sem lotes cadastrados.');
-
   const pesoKg=d.pesoKg;
-  const und=lotes[0].unidade||'kg';
-  const codProd=lotes[0].codigo;
-  const nomeProd=lotes[0].nome;
-
-  // Ordenação PEPS / FEFO: lotes com validade que vencem primeiro são baixados antes.
-  let lotesComValidade = lotes.filter(l => l.validade);
-  let lotesSemValidade = lotes.filter(l => !l.validade);
-  lotesComValidade.sort((a, b) => new Date(a.validade + 'T00:00:00') - new Date(b.validade + 'T00:00:00'));
-  let lotesOrdenados = [...lotesComValidade, ...lotesSemValidade];
-
-  let pesoFaltante = pesoKg;
-  const lotesMov = [];
-  for (let lote of lotesOrdenados) {
-    if (pesoFaltante <= 0) break;
-    if (lote.saldo <= 0) continue;
-    let aBaixar = Math.min(lote.saldo, pesoFaltante);
-    lote.saldo = Math.round((lote.saldo - aBaixar) * 1000) / 1000;
-    lotesMov.push({validade:lote.validade||'',qtd:Math.round(aBaixar*1000)/1000});
-    pesoFaltante = Math.round((pesoFaltante - aBaixar) * 1000) / 1000;
-  }
-
-  // Se faltar estoque, registra saldo negativo no lote mais antigo e guarda essa parcela para eventual estorno.
-  if (pesoFaltante > 0 && lotesOrdenados.length) {
-    lotesOrdenados[0].saldo = Math.round((lotesOrdenados[0].saldo - pesoFaltante) * 1000) / 1000;
-    const mov0=lotesMov.find(m=>m.validade===(lotesOrdenados[0].validade||''));
-    if(mov0) mov0.qtd=Math.round((mov0.qtd+pesoFaltante)*1000)/1000;
-    else lotesMov.push({validade:lotesOrdenados[0].validade||'',qtd:Math.round(pesoFaltante*1000)/1000});
-  }
-
-  const totalConsolidado = estoque.filter(p => p.codigo === codProd).reduce((sum, p) => sum + p.saldo, 0);
-  historico.push({
-    id:gerarIdMov(),ts:Date.now(),tipo:'baixa',codigo:codProd,nome:nomeProd,peso:pesoKg,
-    saldoApos:totalConsolidado,resp,origem:d.origem,valorTotal:d.valorUsado||0,
-    lotesMov:JSON.stringify(lotesMov),estornado:false
-  });
-
-  salvar();renderEstoque();atualizarSummary();renderHistorico();
-  const detalheValor=d.valorUsado>0?' — valor R$ '+d.valorUsado.toFixed(2):'';
-  mostrarMsg('msg-baixa','msg-ok','✓ Baixa de '+pesoKg.toFixed(3)+' '+und+detalheValor+'. Saldo total: '+totalConsolidado.toFixed(3)+' '+und);
-  document.getElementById('baixa-upc').value='';
-  document.getElementById('baixa-produto').value='';
-  document.getElementById('baixa-manual').value='';
-  document.getElementById('baixa-valor').value='';
-  document.getElementById('upc-box').classList.remove('show');
+  const und=d.prod.unidade||'kg';
+  try{
+    const dados=await apiPostAcao('registrarBaixa',{codigo:String(d.prod.codigo),peso:pesoKg,resp,origem:d.origem,valorTotal:d.valorUsado||0});
+    const detalheValor=d.valorUsado>0?' — valor R$ '+d.valorUsado.toFixed(2):'';
+    mostrarMsg('msg-baixa','msg-ok','✓ Baixa de '+pesoKg.toFixed(3)+' '+und+detalheValor+'. Saldo total: '+Number(dados.saldoApos||0).toFixed(3)+' '+und);
+    document.getElementById('baixa-upc').value='';
+    document.getElementById('baixa-produto').value='';
+    document.getElementById('baixa-manual').value='';
+    document.getElementById('baixa-valor').value='';
+    document.getElementById('upc-box').classList.remove('show');
+  }catch(e){mostrarMsg('msg-baixa','msg-err',e.message);}
 }
 
 function renderHistorico(){
@@ -1169,7 +1261,7 @@ function renderHistorico(){
     const cor=ehEstorno?'var(--red)':(r.tipo==='entrada'?'var(--green)':'var(--yellow)');
     const podeEstornar=!ehEstorno && !r.estornado;
     const acao=podeEstornar
-      ? `<button class="btn-sm" style="background:var(--red-bg);color:var(--red-text);border-color:#5a2a2a;margin:0;" onclick="estornarItemHistorico(${idxReal})">Estornar</button>`
+      ? `<button class="btn-sm" style="background:var(--red-bg);color:var(--red-text);border-color:#5a2a2a;margin:0;" onclick="estornarItemHistorico(${idxReal})"><i class="ti ti-arrow-back-up"></i> Estornar</button>`
       : `<span style="font-size:11px;color:var(--text3);">${r.estornado?'Estornado':'—'}</span>`;
     return `<tr>
       <td style="font-size:12px;color:var(--text2);">${fmtHora(r.ts)}</td>
@@ -1191,69 +1283,19 @@ function limparFiltrosHistorico(){
   renderHistorico();
 }
 
-function estornarItemHistorico(idx){
+async function estornarItemHistorico(idx){
   const mov=historico[idx];
-  if(!mov || mov.tipo==='estorno' || mov.estornado) return;
-
+  if(!mov||mov.tipo==='estorno'||mov.estornado)return;
   const peso=Math.abs(Number(mov.peso)||0);
-  if(peso<=0) return alert('Esta movimentação não possui quantidade válida para estorno.');
-  const lotes=estoque.filter(p=>p.codigo===String(mov.codigo));
-  if(!lotes.length) return alert('Produto não encontrado no estoque. Não é possível estornar automaticamente.');
-  const und=lotes[0].unidade||'kg';
+  if(peso<=0)return alert('Esta movimentação não possui quantidade válida para estorno.');
+  const prod=estoque.find(p=>String(p.codigo)===String(mov.codigo));
+  const und=prod?(prod.unidade||'kg'):'kg';
   const acao=mov.tipo==='baixa'?'DEVOLVER ao estoque':'RETIRAR do estoque';
-  if(!confirm(`Estornar esta ${mov.tipo==='entrada'?'ENTRADA':'BAIXA'} de ${peso.toFixed(3)} ${und}?\n\nO sistema irá ${acao} e manterá os dois registros no histórico para auditoria.`)) return;
-
-  if(mov.tipo==='baixa'){
-    // Baixas novas guardam exatamente de quais lotes saíram; restaura nos mesmos lotes.
-    let detalhes=[];
-    try{ detalhes=mov.lotesMov?JSON.parse(mov.lotesMov):[]; }catch(e){ detalhes=[]; }
-    if(detalhes.length){
-      detalhes.forEach(d=>{
-        let lote=estoque.find(p=>p.codigo===String(mov.codigo) && (p.validade||'')===(d.validade||''));
-        if(!lote){
-          const base=lotes[0];
-          lote={codigo:base.codigo,nome:base.nome,unidade:base.unidade||'kg',min:base.min||1,precoKg:base.precoKg||0,saldo:0,validade:d.validade||'',dataEntrada:new Date().toISOString().slice(0,10)};
-          estoque.push(lote);
-        }
-        lote.saldo=Math.round((Number(lote.saldo||0)+Number(d.qtd||0))*1000)/1000;
-      });
-    }else{
-      // Compatibilidade com registros antigos: devolve ao lote que vence primeiro.
-      const destino=[...lotes].sort((a,b)=>(a.validade||'9999-12-31').localeCompare(b.validade||'9999-12-31'))[0];
-      destino.saldo=Math.round((Number(destino.saldo||0)+peso)*1000)/1000;
-    }
-  }else if(mov.tipo==='entrada'){
-    // Para entradas novas, tenta retirar do lote da validade original; em registros antigos usa FEFO.
-    let faltante=peso;
-    let ordenados=[...lotes];
-    if(mov.validadeMov){
-      ordenados.sort((a,b)=>((a.validade||'')===mov.validadeMov?-1:0)-((b.validade||'')===mov.validadeMov?-1:0));
-    }else{
-      ordenados.sort((a,b)=>(a.validade||'9999-12-31').localeCompare(b.validade||'9999-12-31'));
-    }
-    const disponivel=ordenados.reduce((s,l)=>s+Math.max(0,Number(l.saldo)||0),0);
-    if(disponivel+0.0001<peso) return alert(`Não é possível estornar: o estoque atual disponível (${disponivel.toFixed(3)} ${und}) é menor que a entrada original (${peso.toFixed(3)} ${und}).`);
-    for(const lote of ordenados){
-      if(faltante<=0) break;
-      const tirar=Math.min(Math.max(0,Number(lote.saldo)||0),faltante);
-      lote.saldo=Math.round((Number(lote.saldo||0)-tirar)*1000)/1000;
-      faltante=Math.round((faltante-tirar)*1000)/1000;
-    }
-  }else{
-    return alert('Tipo de movimentação não suportado para estorno.');
-  }
-
-  mov.estornado=true;
-  if(!mov.id) mov.id='legacy_'+mov.ts+'_'+idx;
-  const novoSaldo=totalProduto(String(mov.codigo));
-  historico.push({
-    id:gerarIdMov(),ts:Date.now(),tipo:'estorno',tipoOriginal:mov.tipo,estornoDe:mov.id,
-    codigo:String(mov.codigo),nome:mov.nome,peso:peso,saldoApos:novoSaldo,
-    resp:(storageGet(LOGIN_STORAGE_KEY)||'Usuário')+' — estorno',estornado:false
-  });
-
-  salvar();renderEstoque();atualizarSummary();renderHistorico();renderPrecos();
-  alert(`Estorno concluído. Novo saldo total: ${novoSaldo.toFixed(3)} ${und}.`);
+  if(!confirm(`Estornar esta ${mov.tipo==='entrada'?'ENTRADA':'BAIXA'} de ${peso.toFixed(3)} ${und}?\n\nO servidor irá ${acao} com bloqueio de concorrência e manterá os dois registros no histórico.`))return;
+  try{
+    const dados=await apiPostAcao('estornarMovimento',{id:String(mov.id||''),resp:usuarioAtual()});
+    alert(`Estorno concluído. Novo saldo total: ${Number(dados.saldoApos||0).toFixed(3)} ${und}.`);
+  }catch(e){alert('Não foi possível estornar: '+e.message);}
 }
 
 function limparHistorico(){
