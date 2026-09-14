@@ -99,12 +99,33 @@
     }
   }
 
-  // Já logado nesta sessão do navegador? Pula direto pro sistema
-  (function verificarLoginExistente(){
-    const usuarioSalvo = storageGet(LOGIN_STORAGE_KEY);
-    if(usuarioSalvo && USUARIOS_HASH[usuarioSalvo]){
-      liberarAcesso(usuarioSalvo);
-    }
+  // Segurança v30: sempre exige seleção do avatar + senha ao abrir/recarregar a página.
+  // O usuário só fica salvo depois da autenticação para identificar as movimentações
+  // e preencher automaticamente os campos de Responsável/Atendente.
+  (function exigirLoginAoAbrir(){
+    try{ sessionStorage.removeItem(LOGIN_STORAGE_KEY); }catch(e){ window['_mem_'+LOGIN_STORAGE_KEY]=null; }
+    usuarioSelecionado=null;
+
+    const preparar=function(){
+      const overlay=document.getElementById('login-overlay');
+      const app=document.getElementById('app-conteudo');
+      const avatars=document.getElementById('login-avatars');
+      const senhaBox=document.getElementById('login-senha-box');
+      const sub=document.getElementById('login-step1-sub');
+      const senhaInput=document.getElementById('login-senha-input');
+      const erro=document.getElementById('login-senha-erro');
+
+      if(overlay) overlay.style.display='flex';
+      if(app) app.style.display='none';
+      if(avatars) avatars.style.display='flex';
+      if(senhaBox) senhaBox.classList.remove('show');
+      if(sub) sub.style.display='block';
+      if(senhaInput) senhaInput.value='';
+      if(erro) erro.textContent='';
+    };
+
+    if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',preparar,{once:true});
+    else preparar();
   })();
 </script>
 <style>
@@ -623,7 +644,7 @@ tr:hover td{background:rgba(255,255,255,.025);}
 </div>
 
 <script>
-const ESCUDO_FRIOS_BUILD='v25-aura-logo-escudo-padaria';
+const ESCUDO_FRIOS_BUILD='v30-login-obrigatorio';
 console.info('[Escudo Frios]',ESCUDO_FRIOS_BUILD);
 
 const PRODUTOS_BASE=[
