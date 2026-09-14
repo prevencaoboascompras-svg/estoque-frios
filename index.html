@@ -874,27 +874,38 @@ function renderEstoque(){
     const g=grupos[cod];
     const und=g.unidade;
 
-    // Regra 1: saldo <= 0 sai da tela inicial automaticamente.
-    const ativos=g.itens.filter(it=>Number(it.saldo)>0);
-    if(!ativos.length)return '';
+    // Regra do dashboard:
+    // - saldo = 0 fica oculto;
+    // - saldo < 0 NUNCA fica oculto, pois exige conferência de pesagem/baixa;
+    // - dos lotes positivos, mostra inicialmente os 2 mais recentes.
+    const naoZerados=g.itens.filter(it=>Number(it.saldo)!==0);
+    if(!naoZerados.length)return '';
     gruposVisiveis++;
 
-    // O total do card considera TODOS os lotes ativos, inclusive os antigos ocultos.
-    const total=ativos.reduce((s,it)=>s+(Number(it.saldo)||0),0);
-    let totalBadge;
-    if(total<g.min)totalBadge='<span class="badge b-low">Baixo</span>';
-    else totalBadge='<span class="badge b-ok">OK</span>';
-
-    // Regra 2: mais recentemente inseridos/atualizados primeiro.
-    const ativosOrdenados=[...ativos].sort((a,b)=>{
+    const negativos=naoZerados.filter(it=>Number(it.saldo)<0).sort((a,b)=>{
+      const rb=_loteRecencia_(b,b.idx), ra=_loteRecencia_(a,a.idx);
+      if(rb!==ra)return rb-ra;
+      return Number(b.idx)-Number(a.idx);
+    });
+    const positivos=naoZerados.filter(it=>Number(it.saldo)>0).sort((a,b)=>{
       const rb=_loteRecencia_(b,b.idx), ra=_loteRecencia_(a,a.idx);
       if(rb!==ra)return rb-ra;
       return Number(b.idx)-Number(a.idx);
     });
 
+    // O total do card considera todos os lotes não zerados, inclusive negativos.
+    const total=naoZerados.reduce((s,it)=>s+(Number(it.saldo)||0),0);
+    let totalBadge;
+    if(negativos.length)totalBadge='<span class="badge b-zero">⚠ Saldo negativo</span>';
+    else if(total<g.min)totalBadge='<span class="badge b-low">Baixo</span>';
+    else totalBadge='<span class="badge b-ok">OK</span>';
+
+    // Negativos ficam SEMPRE visíveis. Os positivos seguem a regra dos 2 mais recentes.
+    const ativosOrdenados=[...negativos,...positivos];
     const expandido=_dashboardLotesExpandidos.has(String(cod));
-    const itensVisiveis=expandido ? ativosOrdenados : ativosOrdenados.slice(0,DASH_MAX_LOTES_POR_PRODUTO);
-    const ocultos=Math.max(0,ativosOrdenados.length-itensVisiveis.length);
+    const positivosVisiveis=expandido ? positivos : positivos.slice(0,DASH_MAX_LOTES_POR_PRODUTO);
+    const itensVisiveis=[...negativos,...positivosVisiveis];
+    const ocultos=Math.max(0,positivos.length-positivosVisiveis.length);
 
     const lotesHtml=itensVisiveis.map(it=>{
       const sv=statusVal(it.validade);
@@ -902,13 +913,18 @@ function renderEstoque(){
       if(sv==='vencido')vBadge='<span class="badge b-venc">Vencido</span>';
       else if(sv==='vencendo')vBadge='<span class="badge b-low">Vence em breve</span>';
 
-      const qtdBadge=(Number(it.saldo)<g.min)?'<span class="badge b-low">Baixo</span>':'';
+      const saldoNum=Number(it.saldo)||0;
+      const ehNegativo=saldoNum<0;
+      const qtdBadge=ehNegativo
+        ? '<span class="badge b-zero">NEGATIVO</span>'
+        : (saldoNum<g.min?'<span class="badge b-low">Baixo</span>':'');
 
-      return`<div class="lote-card">
+      return`<div class="lote-card"${ehNegativo?' style="border-color:rgba(239,68,68,.72);box-shadow:0 0 0 1px rgba(239,68,68,.16) inset;"':''}>
         <div class="lote-top">
-          <span class="lote-qtd">${Number(it.saldo).toFixed(3)} ${und}</span>
+          <span class="lote-qtd"${ehNegativo?' style="color:var(--red-text);"':''}>${saldoNum.toFixed(3)} ${und}</span>
           ${qtdBadge}
         </div>
+        ${ehNegativo?'<div style="font-size:10.5px;font-weight:800;color:var(--red-text);background:var(--red-bg);border:1px solid rgba(239,68,68,.22);border-radius:5px;padding:5px 7px;line-height:1.25;">⚠ Saldo negativo — conferir pesagem/baixa do setor</div>':''}
         <div class="lote-info">
           <div class="li-row"><span class="li-label">Entrada</span><span>${fmtData(it.dataEntrada)}</span></div>
           <div class="li-row"><span class="li-label">Validade</span><span>${fmtData(it.validade)}</span></div>
@@ -929,10 +945,10 @@ function renderEstoque(){
       : `<span class="produto-icone" style="background:${cat.cor}22;color:${cat.cor};">${cat.icone}</span>`;
 
     const codUrl=encodeURIComponent(String(cod));
-    const controleLotes=ativosOrdenados.length>DASH_MAX_LOTES_POR_PRODUTO
+    const controleLotes=positivos.length>DASH_MAX_LOTES_POR_PRODUTO
       ? `<div class="lotes-ocultos-info">
-          <span>${expandido?'Todos os '+ativosOrdenados.length+' lotes ativos estão visíveis':ocultos+' lote'+(ocultos!==1?'s':'')+' ativo'+(ocultos!==1?'s':'')+' anterior'+(ocultos!==1?'es':'')+' oculto'+(ocultos!==1?'s':'')+' da tela inicial'}</span>
-          <button class="btn-sm" onclick="toggleLotesDashboard(decodeURIComponent('${codUrl}'))"><i class="ti ${expandido?'ti-chevron-up':'ti-list-details'}"></i> ${expandido?'Mostrar só os 2 mais recentes':'Ver todos ('+ativosOrdenados.length+')'}</button>
+          <span>${expandido?'Todos os lotes positivos estão visíveis':ocultos+' lote'+(ocultos!==1?'s':'')+' positivo'+(ocultos!==1?'s':'')+' anterior'+(ocultos!==1?'es':'')+' oculto'+(ocultos!==1?'s':'')+' da tela inicial'}</span>
+          <button class="btn-sm" onclick="toggleLotesDashboard(decodeURIComponent('${codUrl}'))"><i class="ti ${expandido?'ti-chevron-up':'ti-list-details'}"></i> ${expandido?'Mostrar só os 2 positivos mais recentes':'Ver todos ('+ativosOrdenados.length+')'}</button>
         </div>`
       : '';
 
@@ -941,7 +957,7 @@ function renderEstoque(){
         ${iconeHtml}
         <div class="produto-header-info">
           <div class="produto-nome">${g.nome}</div>
-          <div class="produto-cod">Código ${g.codigo} · ${ativosOrdenados.length} lote${ativosOrdenados.length>1?'s':''} ativo${ativosOrdenados.length>1?'s':''}</div>
+          <div class="produto-cod">Código ${g.codigo} · ${naoZerados.length} lote${naoZerados.length>1?'s':''} com saldo</div>
           <div class="produto-total">
             <div class="produto-total-val" style="color:${cat.cor};">${total.toFixed(3)} ${und}</div>
             ${totalBadge}
@@ -1075,20 +1091,22 @@ function atualizarSummary(){
   const grupos={};
   estoque.forEach(p=>{
     const cod=String(p.codigo||'');
-    if(!grupos[cod])grupos[cod]={total:0,min:Number(p.min)||0};
+    if(!grupos[cod])grupos[cod]={total:0,min:Number(p.min)||0,temNegativo:false};
     grupos[cod].total+=Number(p.saldo)||0;
+    if(Number(p.saldo)<0)grupos[cod].temNegativo=true;
     if(Number(p.min)>0)grupos[cod].min=Number(p.min);
   });
   const produtos=Object.values(grupos);
   const produtosUnicos=produtos.length;
-  const zerados=produtos.filter(g=>g.total<=0).length;
-  const baixos=produtos.filter(g=>g.total>0&&g.total<g.min).length;
-  const ok=produtos.filter(g=>g.total>0&&g.total>=g.min).length;
+  const zerados=produtos.filter(g=>g.total===0&&!g.temNegativo).length;
+  const baixos=produtos.filter(g=>!g.temNegativo&&g.total>0&&g.total<g.min).length;
+  const negativos=produtos.filter(g=>g.temNegativo).length;
+  const ok=produtos.filter(g=>!g.temNegativo&&g.total>0&&g.total>=g.min).length;
   // Validade crítica conta somente lotes que ainda possuem saldo positivo.
   const venc=estoque.filter(p=>Number(p.saldo)>0&&(()=>{const st=statusVal(p.validade);return st==='vencido'||st==='vencendo';})()).length;
   document.getElementById('s-total').textContent=produtosUnicos;
   document.getElementById('s-ok').textContent=ok;
-  document.getElementById('s-low').textContent=zerados+baixos;
+  document.getElementById('s-low').textContent=zerados+baixos+negativos;
   const vEl=document.getElementById('s-venc');
   vEl.textContent=venc;
   vEl.className='val '+(venc>0?'val-red':'val-white');
@@ -1345,7 +1363,7 @@ function exportarRelatorio(){
   txt+='Produto|Código|Estoque|Unidade|Validade|Status\n';
   estoque.forEach(p=>{
     const sv=statusVal(p.validade);
-    const st=p.saldo<=0?'Zerado':p.saldo<p.min?'Baixo':'OK';
+    const st=Number(p.saldo)<0?'NEGATIVO':Number(p.saldo)===0?'Zerado':p.saldo<p.min?'Baixo':'OK';
     const vObs=sv==='vencido'?' (VENCIDO)':sv==='vencendo'?' (VENCE EM BREVE)':'';
     txt+=p.nome+'|'+p.codigo+'|'+p.saldo.toFixed(3)+'|'+(p.unidade||'kg')+'|'+fmtData(p.validade)+vObs+'|'+st+'\n';
   });
