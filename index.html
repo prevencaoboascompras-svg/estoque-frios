@@ -40,9 +40,28 @@
     return Array.from(new Uint8Array(hashBuffer)).map(b => b.toString(16).padStart(2,'0')).join('');
   }
 
+  function preencherResponsaveisLogin(nome){
+    const usuario=String(nome||'').trim();
+    if(!usuario)return;
+    ['ent-resp','baixa-resp'].forEach(id=>{
+      const campo=document.getElementById(id);
+      if(campo) campo.value=usuario;
+    });
+  }
+
   function liberarAcesso(nome){
-    document.getElementById('login-overlay').style.display = 'none';
-    document.getElementById('app-conteudo').style.display = 'block';
+    const abrir=function(){
+      const overlay=document.getElementById('login-overlay');
+      const app=document.getElementById('app-conteudo');
+      if(overlay) overlay.style.display='none';
+      if(app) app.style.display='block';
+      preencherResponsaveisLogin(nome);
+    };
+    if(document.readyState==='loading'){
+      document.addEventListener('DOMContentLoaded',abrir,{once:true});
+    }else{
+      abrir();
+    }
   }
 
   function selecionarUsuario(nome){
@@ -454,7 +473,6 @@ tr:hover td{background:rgba(255,255,255,.025);}
     <button class="btn-primary" onclick="adicionarProduto()"><i class="ti ti-database-plus"></i> Adicionar Produto ao Banco</button>
   </div>
 
-  <div class="dashboard-lotes-regra">Dashboard automático: lotes zerados são ocultados e cada produto mostra os 2 lotes ativos mais recentes.</div>
   <div id="estoque-cards"></div>
 </div>
 
@@ -478,7 +496,7 @@ tr:hover td{background:rgba(255,255,255,.025);}
         <input type="date" id="ent-validade">
       </div>
       <div class="field"><label>Responsável</label>
-        <input type="text" id="ent-resp" placeholder="Nome">
+        <input type="text" id="ent-resp" placeholder="Responsável (preenchido pelo login, editável)">
       </div>
     </div>
     <div style="display:flex;align-items:center;gap:12px;margin-top:4px;">
@@ -518,7 +536,7 @@ tr:hover td{background:rgba(255,255,255,.025);}
     </div>
     <div class="frow frow2" style="margin-top:10px;">
       <div class="field"><label>Responsável</label>
-        <input type="text" id="baixa-resp" placeholder="Nome do atendente">
+        <input type="text" id="baixa-resp" placeholder="Atendente (preenchido pelo login, editável)">
       </div>
     </div>
     <button class="btn-primary" onclick="registrarBaixa()"><i class="ti ti-package-export"></i> Confirmar baixa</button>
