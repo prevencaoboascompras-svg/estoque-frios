@@ -644,7 +644,7 @@ tr:hover td{background:rgba(255,255,255,.025);}
 </div>
 
 <script>
-const ESCUDO_FRIOS_BUILD='v30-login-obrigatorio';
+const ESCUDO_FRIOS_BUILD='v34-operacao-idempotente';
 console.info('[Escudo Frios]',ESCUDO_FRIOS_BUILD);
 
 const PRODUTOS_BASE=[
@@ -677,15 +677,24 @@ function usuarioAtual(){
   return storageGet(LOGIN_STORAGE_KEY)||'Usuário';
 }
 
+const ESCUDO_CACHE_ESTOQUE_KEY='escudo_frios_cache_estado_v33';
+let historicoCompletoCarregado=false;
+let cacheVisualAtivo=false;
+
 function aplicarDadosServidor(dados){
-  estoque=(dados&&Array.isArray(dados.estoque)?dados.estoque:[]).map(p=>{
-    if(p.precoKg===undefined||p.precoKg===''){
-      const base=PRODUTOS_BASE.find(b=>String(b.codigo)===String(p.codigo));
-      p.precoKg=base?base.precoKg:0;
-    }
-    return p;
-  });
-  historico=(dados&&Array.isArray(dados.historico)?dados.historico:[]);
+  if(dados&&Array.isArray(dados.estoque)){
+    estoque=dados.estoque.map(p=>{
+      if(p.precoKg===undefined||p.precoKg===''){
+        const base=PRODUTOS_BASE.find(b=>String(b.codigo)===String(p.codigo));
+        p.precoKg=base?base.precoKg:0;
+      }
+      return p;
+    });
+  }
+  // v33: a leitura rápida do dashboard não substitui o histórico já carregado.
+  if(dados&&Object.prototype.hasOwnProperty.call(dados,'historico')&&Array.isArray(dados.historico)){
+    historico=dados.historico;
+  }
   popularSelect();
   renderEstoque();
   renderPrecos();
@@ -693,22 +702,114 @@ function aplicarDadosServidor(dados){
   atualizarSummary();
 }
 
+function salvarCacheEstado(){
+  try{
+    localStorage.setItem(ESCUDO_CACHE_ESTOQUE_KEY,JSON.stringify({ts:Date.now(),estoque:estoque}));
+  }catch(e){}
+}
+
+function carregarCacheEstado(){
+  try{
+    const raw=localStorage.getItem(ESCUDO_CACHE_ESTOQUE_KEY);
+    if(!raw)return false;
+    const c=JSON.parse(raw);
+    if(!c||!Array.isArray(c.estoque)||!c.estoque.length)return false;
+    // Cache serve só para abrir a tela imediatamente; servidor continua sendo a fonte oficial.
+    aplicarDadosServidor({estoque:c.estoque});
+    cacheVisualAtivo=true;
+    return true;
+  }catch(e){return false;}
+}
+
+async function fetchJsonComTimeout_(url,opts,timeoutMs){
+  const controller=new AbortController();
+  const timer=setTimeout(()=>controller.abort(),timeoutMs||25000);
+  try{
+    const r=await fetch(url,Object.assign({},opts||{},{signal:controller.signal,cache:'no-store'}));
+    const txt=await r.text();
+    let dados;
+    try{dados=JSON.parse(txt);}catch(e){throw new Error('Resposta inválida do servidor.');}
+    if(dados&&dados.ok===false)throw new Error(dados.erro||'Falha ao consultar o servidor.');
+    return dados||{};
+  }finally{clearTimeout(timer);}
+}
+
 async function apiGetDados(){
   const sep=SHEETS_API_URL.includes('?')?'&':'?';
-  const r=await fetch(SHEETS_API_URL+sep+'_ts='+Date.now(),{cache:'no-store'});
-  const txt=await r.text();
-  let dados;
-  try{dados=JSON.parse(txt);}catch(e){throw new Error('Resposta inválida do servidor.');}
-  if(dados&&dados.ok===false)throw new Error(dados.erro||'Falha ao consultar o servidor.');
-  return dados||{};
+  const url=SHEETS_API_URL+sep+'action=estado&_ts='+Date.now();
+  try{
+    return await fetchJsonComTimeout_(url,{},22000);
+  }catch(e){
+    // Cold start do Apps Script: uma segunda tentativa costuma responder rapidamente.
+    await new Promise(r=>setTimeout(r,900));
+    return await fetchJsonComTimeout_(url.replace(/_ts=\d+/, '_ts='+Date.now()),{},35000);
+  }
+}
+
+async function apiGetHistorico(){
+  const sep=SHEETS_API_URL.includes('?')?'&':'?';
+  return fetchJsonComTimeout_(SHEETS_API_URL+sep+'action=historico&_ts='+Date.now(),{},45000);
+}
+
+async function carregarHistoricoCompleto(forcar){
+  if(historicoCompletoCarregado&&!forcar)return;
+  try{
+    const dados=await apiGetHistorico();
+    historico=Array.isArray(dados.historico)?dados.historico:[];
+    historicoCompletoCarregado=true;
+    renderHistorico();
+  }catch(e){
+    console.error('Erro ao carregar histórico:',e);
+  }
+}
+
+const ESCUDO_OPS_PENDENTES_KEY='escudo_frios_ops_pendentes_v1';
+
+function _opsPendentesLer_(){
+  try{return JSON.parse(localStorage.getItem(ESCUDO_OPS_PENDENTES_KEY)||'{}')||{};}catch(e){return{};}
+}
+function _opsPendentesSalvar_(m){
+  try{localStorage.setItem(ESCUDO_OPS_PENDENTES_KEY,JSON.stringify(m||{}));}catch(e){}
+}
+function _opFingerprint_(action,payload){return action+'|'+JSON.stringify(payload||{});}
+function _opIdNovo_(action){return 'op_'+action+'_'+Date.now()+'_'+Math.random().toString(36).slice(2,10);}
+function _opObterOuCriar_(action,payload){
+  const fp=_opFingerprint_(action,payload), mapa=_opsPendentesLer_(), agora=Date.now();
+  const antigo=mapa[fp];
+  if(antigo&&antigo.id&&(agora-Number(antigo.ts||0))<15*60*1000)return{fp,id:antigo.id};
+  const id=_opIdNovo_(action);
+  mapa[fp]={id,ts:agora};
+  // Limpa pendências muito antigas para não crescer indefinidamente.
+  Object.keys(mapa).forEach(k=>{if((agora-Number(mapa[k]?.ts||0))>24*60*60*1000)delete mapa[k];});
+  _opsPendentesSalvar_(mapa);
+  return{fp,id};
+}
+function _opLimpar_(fp){const mapa=_opsPendentesLer_();delete mapa[fp];_opsPendentesSalvar_(mapa);}
+
+async function apiConfirmarOperacao_(operacaoId){
+  const sep=SHEETS_API_URL.includes('?')?'&':'?';
+  const urlBase=SHEETS_API_URL+sep+'action=operacaoStatus&id='+encodeURIComponent(operacaoId);
+  const esperas=[700,1800,4000];
+  for(let i=0;i<esperas.length;i++){
+    await new Promise(r=>setTimeout(r,esperas[i]));
+    try{
+      const dados=await fetchJsonComTimeout_(urlBase+'&_ts='+Date.now(),{},16000);
+      if(dados&&dados.ok===true&&dados.processada===true)return dados;
+      if(dados&&dados.ok===true&&dados.processada===false&&i===esperas.length-1)return dados;
+    }catch(e){}
+  }
+  return null;
 }
 
 async function apiPostAcao(action,payload){
   if(salvando)throw new Error('Há outra operação sendo gravada. Aguarde alguns segundos.');
   salvando=true;
   setSaveStatus('Salvando...','#888');
+  const critica=action==='registrarEntrada'||action==='registrarBaixa';
+  let op=null;
   try{
     const corpo=Object.assign({action},payload||{});
+    if(critica){op=_opObterOuCriar_(action,payload||{});corpo.operacaoId=op.id;}
     const r=await fetch(SHEETS_API_URL,{
       method:'POST',
       headers:{'Content-Type':'text/plain;charset=utf-8'},
@@ -718,11 +819,28 @@ async function apiPostAcao(action,payload){
     let dados;
     try{dados=JSON.parse(txt);}catch(e){throw new Error('O servidor retornou uma resposta inválida.');}
     if(!dados||dados.ok!==true)throw new Error((dados&&dados.erro)||'A operação não foi confirmada pelo servidor.');
+    if(op)_opLimpar_(op.fp);
     aplicarDadosServidor(dados);
+    salvarCacheEstado();
+    if(document.getElementById('tab-historico')?.classList.contains('active')) carregarHistoricoCompleto(true);
     setSaveStatus('Salvo ✓','#4caf50');
     return dados;
   }catch(e){
     console.error('Erro na operação '+action,e);
+    if(critica&&op){
+      setSaveStatus('Confirmando gravação...','#f59e0b');
+      const conf=await apiConfirmarOperacao_(op.id);
+      if(conf&&conf.processada===true){
+        _opLimpar_(op.fp);
+        aplicarDadosServidor(conf);
+        salvarCacheEstado();
+        if(document.getElementById('tab-historico')?.classList.contains('active')) carregarHistoricoCompleto(true);
+        setSaveStatus('Salvo ✓','#4caf50');
+        return Object.assign({},conf,{recuperadaAposFalha:true});
+      }
+      setSaveStatus('Gravação não confirmada','#f59e0b');
+      throw new Error('A conexão falhou antes da confirmação. Não repita várias vezes: ao tentar novamente com os mesmos dados, o sistema usará o mesmo ID e impedirá duplicidade.');
+    }
     setSaveStatus('Erro ao salvar','#e05252');
     throw e;
   }finally{
@@ -733,20 +851,28 @@ async function apiPostAcao(action,payload){
 let pollingInterval = null;
 
 async function carregar(){
-  setSaveStatus('Conectando à planilha...','#888');
+  const tinhaCache=carregarCacheEstado();
+  setSaveStatus(tinhaCache?'Atualizando planilha...':'Conectando à planilha...',tinhaCache?'#f59e0b':'#888');
   try{
     let dados=await apiGetDados();
     if(!dados.estoque||!dados.estoque.length){
       dados=await apiPostAcao('inicializarBase',{produtos:PRODUTOS_BASE,resp:'Sistema'});
     }else{
       aplicarDadosServidor(dados);
+      salvarCacheEstado();
+      cacheVisualAtivo=false;
       setSaveStatus('Online ✓','#4caf50');
     }
     if(!pollingInterval)pollingInterval=setInterval(sincronizar,20000);
   }catch(e){
     console.error('Erro ao carregar da planilha:',e);
-    setSaveStatus('Erro de conexão','#e05252');
-    alert('Não foi possível carregar o estoque: '+e.message);
+    if(tinhaCache){
+      setSaveStatus('Dados locais • reconectando','#f59e0b');
+      if(!pollingInterval)pollingInterval=setInterval(sincronizar,20000);
+    }else{
+      setSaveStatus('Erro de conexão','#e05252');
+      alert('Não foi possível carregar o estoque: '+e.message);
+    }
   }
 }
 
@@ -757,9 +883,12 @@ async function sincronizar(){
   try{
     const dados=await apiGetDados();
     aplicarDadosServidor(dados);
+    salvarCacheEstado();
+    cacheVisualAtivo=false;
     setSaveStatus('Online ✓','#4caf50');
   }catch(e){
     console.error('Erro na sincronização periódica:',e);
+    if(cacheVisualAtivo)setSaveStatus('Dados locais • reconectando','#f59e0b');
   }
 }
 
@@ -775,6 +904,7 @@ function switchTab(t){
   document.querySelectorAll('.section').forEach(s=>s.classList.remove('active'));
   document.getElementById('tab-'+t).classList.add('active');
   document.getElementById('sec-'+t).classList.add('active');
+  if(t==='historico')carregarHistoricoCompleto(false);
 }
 
 // Mapeia palavras-chave do nome do produto para um ícone e cor de categoria.
