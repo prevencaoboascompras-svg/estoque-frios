@@ -69,6 +69,8 @@
     document.getElementById('login-avatars').style.display = 'none';
     document.getElementById('login-step1-sub').style.display = 'none';
     document.getElementById('login-senha-usuario').textContent = nome;
+    const usernameInput=document.getElementById('login-username-input');
+    if(usernameInput)usernameInput.value=nome;
     document.getElementById('login-senha-erro').textContent = '';
     const input = document.getElementById('login-senha-input');
     input.value = '';
@@ -78,6 +80,8 @@
 
   function voltarLogin(){
     usuarioSelecionado = null;
+    const usernameInput=document.getElementById('login-username-input');
+    if(usernameInput)usernameInput.value='';
     document.getElementById('login-senha-box').classList.remove('show');
     document.getElementById('login-avatars').style.display = 'flex';
     document.getElementById('login-step1-sub').style.display = 'block';
@@ -423,6 +427,7 @@ tr:hover td{background:rgba(255,255,255,.025);}
     </div>
 
     <form id="login-senha-box" class="login-senha-box" onsubmit="event.preventDefault();validarSenha();">
+      <input type="text" id="login-username-input" name="username" autocomplete="username" tabindex="-1" aria-hidden="true" style="position:absolute;left:-10000px;width:1px;height:1px;opacity:0;pointer-events:none;">
       <div class="login-senha-usuario" id="login-senha-usuario"></div>
       <input type="password" id="login-senha-input" class="login-senha-input" placeholder="Senha" autocomplete="current-password">
       <div id="login-senha-erro" class="login-senha-erro"></div>
@@ -647,7 +652,7 @@ tr:hover td{background:rgba(255,255,255,.025);}
 </div>
 
 <script>
-const ESCUDO_FRIOS_BUILD='v36-botao-atualizar-historico';
+const ESCUDO_FRIOS_BUILD='v37-historico-resiliente';
 console.info('[Escudo Frios]',ESCUDO_FRIOS_BUILD);
 
 const PRODUTOS_BASE=[
@@ -799,11 +804,14 @@ async function apiGetHistorico(){
         break;
       }catch(e){
         ultimoErro=e;
-        console.warn('[Escudo Frios] falha ao buscar página do histórico', {
-          offset,
-          tentativa:tentativa+1,
-          erro:e&&e.message?e.message:String(e)
-        });
+        // Falhas intermediárias são esperadas em cold start do Apps Script.
+        // Só registra aviso no console se a última tentativa da página também falhar.
+        if(tentativa===esperas.length-1){
+          console.warn('[Escudo Frios] página do histórico falhou após 3 tentativas', {
+            offset,
+            erro:e&&e.message?e.message:String(e)
+          });
+        }
       }
     }
 
