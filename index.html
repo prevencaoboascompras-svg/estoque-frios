@@ -594,7 +594,10 @@ tr:hover td{background:rgba(255,255,255,.025);}
 <div class="section" id="sec-historico">
   <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;flex-wrap:wrap;gap:8px;">
     <span style="font-size:13px;font-weight:600;">Movimentações</span>
-    <button class="btn-danger" onclick="limparHistorico()"><i class="ti ti-shield-lock"></i> Histórico protegido</button>
+    <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+      <button class="btn-sm" id="btn-atualizar-historico" onclick="carregarHistoricoCompleto(true)"><i class="ti ti-refresh"></i> Atualizar histórico</button>
+      <button class="btn-danger" onclick="limparHistorico()"><i class="ti ti-shield-lock"></i> Histórico protegido</button>
+    </div>
   </div>
 
   <div class="form-card" style="margin-bottom:12px;padding:10px 14px;">
@@ -644,7 +647,7 @@ tr:hover td{background:rgba(255,255,255,.025);}
 </div>
 
 <script>
-const ESCUDO_FRIOS_BUILD='v35-historico-paginado';
+const ESCUDO_FRIOS_BUILD='v36-botao-atualizar-historico';
 console.info('[Escudo Frios]',ESCUDO_FRIOS_BUILD);
 
 const PRODUTOS_BASE=[
@@ -677,7 +680,7 @@ function usuarioAtual(){
   return storageGet(LOGIN_STORAGE_KEY)||'Usuário';
 }
 
-const ESCUDO_CACHE_ESTOQUE_KEY='escudo_frios_cache_estado_v35';
+const ESCUDO_CACHE_ESTOQUE_KEY='escudo_frios_cache_estado_v36';
 let historicoCompletoCarregado=false;
 let historicoCarregando=false;
 let historicoErro='';
@@ -837,12 +840,24 @@ async function apiGetHistorico(){
   throw new Error('Limite de páginas do histórico excedido.');
 }
 
+function atualizarBotaoHistorico_(){
+  const btn=document.getElementById('btn-atualizar-historico');
+  if(!btn)return;
+  btn.disabled=!!historicoCarregando;
+  btn.style.opacity=historicoCarregando?'0.65':'1';
+  btn.style.cursor=historicoCarregando?'wait':'pointer';
+  btn.innerHTML=historicoCarregando
+    ? '<i class="ti ti-loader-2"></i> Atualizando...'
+    : '<i class="ti ti-refresh"></i> Atualizar histórico';
+}
+
 async function carregarHistoricoCompleto(forcar){
   if(historicoCompletoCarregado&&!forcar)return;
   if(historicoCarregando)return;
 
   historicoCarregando=true;
   historicoErro='';
+  atualizarBotaoHistorico_();
   renderHistorico();
 
   try{
@@ -856,6 +871,7 @@ async function carregarHistoricoCompleto(forcar){
     console.error('Erro ao carregar histórico:',e);
   }finally{
     historicoCarregando=false;
+    atualizarBotaoHistorico_();
     renderHistorico();
   }
 }
