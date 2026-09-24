@@ -652,7 +652,7 @@ tr:hover td{background:rgba(255,255,255,.025);}
 </div>
 
 <script>
-const ESCUDO_FRIOS_BUILD='v38-historico-cache-rapido';
+const ESCUDO_FRIOS_BUILD='v39-historico-paralelo';
 console.info('[Escudo Frios]',ESCUDO_FRIOS_BUILD);
 
 const PRODUTOS_BASE=[
@@ -805,95 +805,83 @@ async function apiGetDados(){
   }
 }
 
-async function apiGetHistoricoCompleto_(){
+async function buscarPaginaHistorico_(offset,limit,primeiraPagina){
   const sep=SHEETS_API_URL.includes('?')?'&':'?';
-  const urlBase=SHEETS_API_URL+sep+'action=historico';
-  const tentativas=[
-    {espera:0,timeout:9000},
-    {espera:450,timeout:12000},
-    {espera:900,timeout:16000}
-  ];
-  let ultimoErro=null;
+  const urlBase=SHEETS_API_URL+sep+
+    'action=historicoPagina&offset='+encodeURIComponent(offset)+
+    '&limit='+encodeURIComponent(limit);
 
-  for(let i=0;i<tentativas.length;i++){
-    const t=tentativas[i];
-    if(t.espera)await new Promise(r=>setTimeout(r,t.espera));
+  const requisitar=(tentativa,timeout)=>fetchJsonComTimeout_(
+    urlBase+'&_ts='+Date.now()+'&tentativa='+tentativa,
+    {},
+    timeout
+  );
+
+  // A primeira página também "acorda" o Apps Script. Fazemos uma segunda
+  // leitura levemente defasada e usamos a primeira resposta válida.
+  if(primeiraPagina){
+    const p1=requisitar(1,6500);
+    const p2=(async()=>{
+      await new Promise(r=>setTimeout(r,800));
+      return requisitar(2,6500);
+    })();
     try{
-      const dados=await fetchJsonComTimeout_(
-        urlBase+'&_ts='+Date.now()+'&tentativa='+(i+1),
-        {},
-        t.timeout
-      );
-      if(!Array.isArray(dados.historico))throw new Error('O servidor não devolveu a lista do histórico.');
-      return dados;
+      return await Promise.any([p1,p2]);
     }catch(e){
-      ultimoErro=e;
+      throw new Error('Não foi possível iniciar a leitura do histórico.');
     }
   }
 
-  throw ultimoErro||new Error('Não foi possível carregar o histórico em uma única consulta.');
-}
-
-async function apiGetHistoricoPaginadoFallback_(){
-  const sep=SHEETS_API_URL.includes('?')?'&':'?';
-  const tamanhoPagina=150;
-  let offset=0;
-  let todos=[];
-  let seguranca=0;
-
-  while(seguranca++<1000){
-    const urlBase=SHEETS_API_URL+sep+
-      'action=historicoPagina&offset='+encodeURIComponent(offset)+
-      '&limit='+encodeURIComponent(tamanhoPagina);
-
-    let dados=null;
-    let ultimoErro=null;
-    const esperas=[0,500,1200];
-
-    for(let tentativa=0;tentativa<esperas.length;tentativa++){
-      if(esperas[tentativa])await new Promise(r=>setTimeout(r,esperas[tentativa]));
-      try{
-        dados=await fetchJsonComTimeout_(
-          urlBase+'&_ts='+Date.now()+'&tentativa='+(tentativa+1),
-          {},
-          tentativa===0?12000:18000
-        );
-        ultimoErro=null;
-        break;
-      }catch(e){
-        ultimoErro=e;
-      }
-    }
-
-    if(!dados)throw ultimoErro||new Error('Não foi possível carregar o histórico.');
-
-    const pagina=Array.isArray(dados.historico)?dados.historico:[];
-    todos=todos.concat(pagina);
-    const pg=dados.paginacao||{};
-    const temMais=pg.temMais===true;
-    const proximo=Number(pg.proximoOffset);
-
-    if(!temMais)return Object.assign({},dados,{historico:todos});
-
-    if(Number.isFinite(proximo)&&proximo>offset)offset=proximo;
-    else if(pagina.length)offset+=pagina.length;
-    else throw new Error('Paginação do histórico não avançou.');
+  // Depois que o Apps Script já acordou, cada página normalmente responde rápido.
+  // Só repete individualmente a página que falhar; as demais continuam em paralelo.
+  try{
+    return await requisitar(1,8000);
+  }catch(e){
+    await new Promise(r=>setTimeout(r,300));
+    return await requisitar(2,10000);
   }
-
-  throw new Error('Limite de páginas do histórico excedido.');
 }
 
 async function apiGetHistorico(){
-  try{
-    // Caminho principal: uma única leitura. Para a base atual (~centenas de movimentos)
-    // isso é muito mais rápido do que abrir várias execuções sequenciais do Apps Script.
-    return await apiGetHistoricoCompleto_();
-  }catch(e){
-    console.warn('[Escudo Frios] leitura única indisponível; usando fallback paginado.',
-      e&&e.message?e.message:String(e));
-    // Plano B: mantém a resiliência da v37 se o ContentService do Google oscilar.
-    return await apiGetHistoricoPaginadoFallback_();
+  const tamanhoPagina=150;
+
+  // Primeira chamada descobre o total e traz os primeiros registros.
+  const primeira=await buscarPaginaHistorico_(0,tamanhoPagina,true);
+  const pg0=primeira&&primeira.paginacao?primeira.paginacao:{};
+  const total=Math.max(0,Number(pg0.total)||0);
+  let todos=Array.isArray(primeira.historico)?primeira.historico.slice():[];
+
+  if(total<=todos.length){
+    return Object.assign({},primeira,{historico:todos});
   }
+
+  // As páginas restantes são buscadas AO MESMO TEMPO. Com ~525 movimentos,
+  // isso troca 4 leituras sequenciais por 1 leitura inicial + 3 paralelas.
+  const offsets=[];
+  for(let offset=tamanhoPagina;offset<total;offset+=tamanhoPagina)offsets.push(offset);
+
+  const paginas=await Promise.all(
+    offsets.map(offset=>buscarPaginaHistorico_(offset,tamanhoPagina,false))
+  );
+
+  paginas.forEach(dados=>{
+    if(Array.isArray(dados&&dados.historico))todos=todos.concat(dados.historico);
+  });
+
+  // Proteção contra alguma página duplicada por eventual retry/redirecionamento.
+  const vistos=new Set();
+  todos=todos.filter((mov,idx)=>{
+    const id=String(mov&&mov.id||'').trim();
+    if(!id)return true;
+    if(vistos.has(id))return false;
+    vistos.add(id);
+    return true;
+  });
+
+  return Object.assign({},primeira,{
+    historico:todos,
+    paginacao:{offset:0,limit:tamanhoPagina,total,proximoOffset:null,temMais:false}
+  });
 }
 
 function atualizarBotaoHistorico_(){
