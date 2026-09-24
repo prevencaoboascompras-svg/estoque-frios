@@ -652,7 +652,7 @@ tr:hover td{background:rgba(255,255,255,.025);}
 </div>
 
 <script>
-const ESCUDO_FRIOS_BUILD='v37-historico-resiliente';
+const ESCUDO_FRIOS_BUILD='v38-historico-cache-rapido';
 console.info('[Escudo Frios]',ESCUDO_FRIOS_BUILD);
 
 const PRODUTOS_BASE=[
@@ -686,9 +686,12 @@ function usuarioAtual(){
 }
 
 const ESCUDO_CACHE_ESTOQUE_KEY='escudo_frios_cache_estado_v36';
+const ESCUDO_CACHE_HISTORICO_KEY='escudo_frios_cache_historico_v1';
 let historicoCompletoCarregado=false;
 let historicoCarregando=false;
 let historicoErro='';
+let historicoCacheCarregado=false;
+let historicoUltimaSync=0;
 let cacheVisualAtivo=false;
 
 function aplicarDadosServidor(dados){
@@ -729,6 +732,34 @@ function carregarCacheEstado(){
     cacheVisualAtivo=true;
     return true;
   }catch(e){return false;}
+}
+
+function salvarCacheHistorico(){
+  try{
+    localStorage.setItem(ESCUDO_CACHE_HISTORICO_KEY,JSON.stringify({
+      ts:Date.now(),
+      historico:Array.isArray(historico)?historico:[]
+    }));
+  }catch(e){
+    console.warn('[Escudo Frios] não foi possível salvar o cache do histórico.',e);
+  }
+}
+
+function carregarCacheHistorico(){
+  if(historicoCacheCarregado)return historico.length>0;
+  historicoCacheCarregado=true;
+  try{
+    const raw=localStorage.getItem(ESCUDO_CACHE_HISTORICO_KEY);
+    if(!raw)return false;
+    const c=JSON.parse(raw);
+    if(!c||!Array.isArray(c.historico))return false;
+    historico=c.historico;
+    historicoUltimaSync=Number(c.ts||0);
+    if(historico.length)renderHistorico();
+    return historico.length>0;
+  }catch(e){
+    return false;
+  }
 }
 
 async function fetchJsonComTimeout_(url,opts,timeoutMs){
@@ -774,9 +805,38 @@ async function apiGetDados(){
   }
 }
 
-async function apiGetHistorico(){
+async function apiGetHistoricoCompleto_(){
   const sep=SHEETS_API_URL.includes('?')?'&':'?';
-  const tamanhoPagina=100;
+  const urlBase=SHEETS_API_URL+sep+'action=historico';
+  const tentativas=[
+    {espera:0,timeout:9000},
+    {espera:450,timeout:12000},
+    {espera:900,timeout:16000}
+  ];
+  let ultimoErro=null;
+
+  for(let i=0;i<tentativas.length;i++){
+    const t=tentativas[i];
+    if(t.espera)await new Promise(r=>setTimeout(r,t.espera));
+    try{
+      const dados=await fetchJsonComTimeout_(
+        urlBase+'&_ts='+Date.now()+'&tentativa='+(i+1),
+        {},
+        t.timeout
+      );
+      if(!Array.isArray(dados.historico))throw new Error('O servidor não devolveu a lista do histórico.');
+      return dados;
+    }catch(e){
+      ultimoErro=e;
+    }
+  }
+
+  throw ultimoErro||new Error('Não foi possível carregar o histórico em uma única consulta.');
+}
+
+async function apiGetHistoricoPaginadoFallback_(){
+  const sep=SHEETS_API_URL.includes('?')?'&':'?';
+  const tamanhoPagina=150;
   let offset=0;
   let todos=[];
   let seguranca=0;
@@ -788,64 +848,52 @@ async function apiGetHistorico(){
 
     let dados=null;
     let ultimoErro=null;
+    const esperas=[0,500,1200];
 
-    // Até 3 tentativas por página. Cada tentativa gera um novo URL temporário
-    // do ContentService e evita que um 404 transitório derrube todo o histórico.
-    const esperas=[0,900,2200];
     for(let tentativa=0;tentativa<esperas.length;tentativa++){
       if(esperas[tentativa])await new Promise(r=>setTimeout(r,esperas[tentativa]));
       try{
         dados=await fetchJsonComTimeout_(
           urlBase+'&_ts='+Date.now()+'&tentativa='+(tentativa+1),
           {},
-          tentativa===0?30000:45000
+          tentativa===0?12000:18000
         );
         ultimoErro=null;
         break;
       }catch(e){
         ultimoErro=e;
-        // Falhas intermediárias são esperadas em cold start do Apps Script.
-        // Só registra aviso no console se a última tentativa da página também falhar.
-        if(tentativa===esperas.length-1){
-          console.warn('[Escudo Frios] página do histórico falhou após 3 tentativas', {
-            offset,
-            erro:e&&e.message?e.message:String(e)
-          });
-        }
       }
     }
 
-    if(!dados){
-      throw ultimoErro||new Error('Não foi possível carregar o histórico.');
-    }
+    if(!dados)throw ultimoErro||new Error('Não foi possível carregar o histórico.');
 
     const pagina=Array.isArray(dados.historico)?dados.historico:[];
     todos=todos.concat(pagina);
-
     const pg=dados.paginacao||{};
     const temMais=pg.temMais===true;
     const proximo=Number(pg.proximoOffset);
 
-    console.log('[Escudo Frios] histórico', {
-      carregados:todos.length,
-      total:Number(pg.total||todos.length),
-      offset
-    });
+    if(!temMais)return Object.assign({},dados,{historico:todos});
 
-    if(!temMais){
-      return Object.assign({},dados,{historico:todos});
-    }
-
-    if(Number.isFinite(proximo)&&proximo>offset){
-      offset=proximo;
-    }else if(pagina.length){
-      offset+=pagina.length;
-    }else{
-      throw new Error('Paginação do histórico não avançou.');
-    }
+    if(Number.isFinite(proximo)&&proximo>offset)offset=proximo;
+    else if(pagina.length)offset+=pagina.length;
+    else throw new Error('Paginação do histórico não avançou.');
   }
 
   throw new Error('Limite de páginas do histórico excedido.');
+}
+
+async function apiGetHistorico(){
+  try{
+    // Caminho principal: uma única leitura. Para a base atual (~centenas de movimentos)
+    // isso é muito mais rápido do que abrir várias execuções sequenciais do Apps Script.
+    return await apiGetHistoricoCompleto_();
+  }catch(e){
+    console.warn('[Escudo Frios] leitura única indisponível; usando fallback paginado.',
+      e&&e.message?e.message:String(e));
+    // Plano B: mantém a resiliência da v37 se o ContentService do Google oscilar.
+    return await apiGetHistoricoPaginadoFallback_();
+  }
 }
 
 function atualizarBotaoHistorico_(){
@@ -860,6 +908,10 @@ function atualizarBotaoHistorico_(){
 }
 
 async function carregarHistoricoCompleto(forcar){
+  // Stale-while-revalidate: mostra o último histórico salvo imediatamente e
+  // sincroniza com a planilha sem bloquear a tabela.
+  carregarCacheHistorico();
+
   if(historicoCompletoCarregado&&!forcar)return;
   if(historicoCarregando)return;
 
@@ -873,10 +925,13 @@ async function carregarHistoricoCompleto(forcar){
     historico=Array.isArray(dados.historico)?dados.historico:[];
     historicoCompletoCarregado=true;
     historicoErro='';
-    console.log('[Escudo Frios] histórico completo carregado:',historico.length);
+    historicoUltimaSync=Date.now();
+    salvarCacheHistorico();
+    console.log('[Escudo Frios] histórico sincronizado:',historico.length);
   }catch(e){
     historicoErro=e&&e.message?e.message:String(e);
-    console.error('Erro ao carregar histórico:',e);
+    // Se existe cache, preserva a lista visível. O erro só impede a atualização.
+    console.error('Erro ao sincronizar histórico:',e);
   }finally{
     historicoCarregando=false;
     atualizarBotaoHistorico_();
@@ -943,6 +998,7 @@ async function apiPostAcao(action,payload){
     if(op)_opLimpar_(op.fp);
     aplicarDadosServidor(dados);
     salvarCacheEstado();
+    historicoCompletoCarregado=false;
     if(document.getElementById('tab-historico')?.classList.contains('active')) carregarHistoricoCompleto(true);
     setSaveStatus('Salvo ✓','#4caf50');
     return dados;
@@ -955,6 +1011,7 @@ async function apiPostAcao(action,payload){
         _opLimpar_(op.fp);
         aplicarDadosServidor(conf);
         salvarCacheEstado();
+        historicoCompletoCarregado=false;
         if(document.getElementById('tab-historico')?.classList.contains('active')) carregarHistoricoCompleto(true);
         setSaveStatus('Salvo ✓','#4caf50');
         return Object.assign({},conf,{recuperadaAposFalha:true});
@@ -973,6 +1030,7 @@ let pollingInterval = null;
 
 async function carregar(){
   const tinhaCache=carregarCacheEstado();
+  carregarCacheHistorico();
   setSaveStatus(tinhaCache?'Atualizando planilha...':'Conectando à planilha...',tinhaCache?'#f59e0b':'#888');
   try{
     let dados=await apiGetDados();
@@ -1544,7 +1602,7 @@ function renderHistorico(){
   const tb=document.getElementById('tbody-historico');
   if(!tb)return;
 
-  if(historicoCarregando){
+  if(historicoCarregando&&!historico.length){
     tb.innerHTML='<tr><td colspan="7" style="text-align:center;color:var(--text2);padding:24px 0;"><i class="ti ti-loader-2"></i> Carregando histórico...</td></tr>';
     return;
   }
