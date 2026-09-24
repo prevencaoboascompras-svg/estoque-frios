@@ -422,15 +422,15 @@ tr:hover td{background:rgba(255,255,255,.025);}
       </div>
     </div>
 
-    <div id="login-senha-box" class="login-senha-box">
+    <form id="login-senha-box" class="login-senha-box" onsubmit="event.preventDefault();validarSenha();">
       <div class="login-senha-usuario" id="login-senha-usuario"></div>
-      <input type="password" id="login-senha-input" class="login-senha-input" placeholder="Senha" autocomplete="off" onkeydown="if(event.key==='Enter')validarSenha()">
+      <input type="password" id="login-senha-input" class="login-senha-input" placeholder="Senha" autocomplete="current-password">
       <div id="login-senha-erro" class="login-senha-erro"></div>
       <div class="login-senha-botoes">
-        <button class="login-btn-voltar" onclick="voltarLogin()"><i class="ti ti-arrow-left"></i> Voltar</button>
-        <button class="login-btn-entrar" onclick="validarSenha()"><i class="ti ti-login-2"></i> Entrar</button>
+        <button type="button" class="login-btn-voltar" onclick="voltarLogin()"><i class="ti ti-arrow-left"></i> Voltar</button>
+        <button type="submit" class="login-btn-entrar"><i class="ti ti-login-2"></i> Entrar</button>
       </div>
-    </div>
+    </form>
 
     <div class="login-footer">Acesso exclusivo para gestores autorizados</div>
   </div>
@@ -644,7 +644,7 @@ tr:hover td{background:rgba(255,255,255,.025);}
 </div>
 
 <script>
-const ESCUDO_FRIOS_BUILD='v34-operacao-idempotente';
+const ESCUDO_FRIOS_BUILD='v35-historico-paginado';
 console.info('[Escudo Frios]',ESCUDO_FRIOS_BUILD);
 
 const PRODUTOS_BASE=[
@@ -677,8 +677,10 @@ function usuarioAtual(){
   return storageGet(LOGIN_STORAGE_KEY)||'Usuário';
 }
 
-const ESCUDO_CACHE_ESTOQUE_KEY='escudo_frios_cache_estado_v33';
+const ESCUDO_CACHE_ESTOQUE_KEY='escudo_frios_cache_estado_v35';
 let historicoCompletoCarregado=false;
+let historicoCarregando=false;
+let historicoErro='';
 let cacheVisualAtivo=false;
 
 function aplicarDadosServidor(dados){
@@ -725,13 +727,31 @@ async function fetchJsonComTimeout_(url,opts,timeoutMs){
   const controller=new AbortController();
   const timer=setTimeout(()=>controller.abort(),timeoutMs||25000);
   try{
-    const r=await fetch(url,Object.assign({},opts||{},{signal:controller.signal,cache:'no-store'}));
+    const r=await fetch(url,Object.assign({},opts||{},{signal:controller.signal,cache:'no-store',redirect:'follow'}));
     const txt=await r.text();
+
+    if(!r.ok){
+      const trecho=String(txt||'').replace(/\s+/g,' ').trim().slice(0,180);
+      const destino=r.url&&r.url!==url?' — destino: '+r.url.split('?')[0]:'';
+      throw new Error('HTTP '+r.status+(r.statusText?' '+r.statusText:'')+destino+(trecho?' — '+trecho:''));
+    }
+
     let dados;
-    try{dados=JSON.parse(txt);}catch(e){throw new Error('Resposta inválida do servidor.');}
+    try{
+      dados=JSON.parse(txt);
+    }catch(e){
+      const trecho=String(txt||'').replace(/\s+/g,' ').trim().slice(0,180);
+      throw new Error('Resposta não-JSON do servidor'+(trecho?' — '+trecho:''));
+    }
+
     if(dados&&dados.ok===false)throw new Error(dados.erro||'Falha ao consultar o servidor.');
     return dados||{};
-  }finally{clearTimeout(timer);}
+  }catch(e){
+    if(e&&e.name==='AbortError')throw new Error('Tempo limite ao consultar o servidor.');
+    throw e;
+  }finally{
+    clearTimeout(timer);
+  }
 }
 
 async function apiGetDados(){
@@ -748,18 +768,95 @@ async function apiGetDados(){
 
 async function apiGetHistorico(){
   const sep=SHEETS_API_URL.includes('?')?'&':'?';
-  return fetchJsonComTimeout_(SHEETS_API_URL+sep+'action=historico&_ts='+Date.now(),{},45000);
+  const tamanhoPagina=100;
+  let offset=0;
+  let todos=[];
+  let seguranca=0;
+
+  while(seguranca++<1000){
+    const urlBase=SHEETS_API_URL+sep+
+      'action=historicoPagina&offset='+encodeURIComponent(offset)+
+      '&limit='+encodeURIComponent(tamanhoPagina);
+
+    let dados=null;
+    let ultimoErro=null;
+
+    // Até 3 tentativas por página. Cada tentativa gera um novo URL temporário
+    // do ContentService e evita que um 404 transitório derrube todo o histórico.
+    const esperas=[0,900,2200];
+    for(let tentativa=0;tentativa<esperas.length;tentativa++){
+      if(esperas[tentativa])await new Promise(r=>setTimeout(r,esperas[tentativa]));
+      try{
+        dados=await fetchJsonComTimeout_(
+          urlBase+'&_ts='+Date.now()+'&tentativa='+(tentativa+1),
+          {},
+          tentativa===0?30000:45000
+        );
+        ultimoErro=null;
+        break;
+      }catch(e){
+        ultimoErro=e;
+        console.warn('[Escudo Frios] falha ao buscar página do histórico', {
+          offset,
+          tentativa:tentativa+1,
+          erro:e&&e.message?e.message:String(e)
+        });
+      }
+    }
+
+    if(!dados){
+      throw ultimoErro||new Error('Não foi possível carregar o histórico.');
+    }
+
+    const pagina=Array.isArray(dados.historico)?dados.historico:[];
+    todos=todos.concat(pagina);
+
+    const pg=dados.paginacao||{};
+    const temMais=pg.temMais===true;
+    const proximo=Number(pg.proximoOffset);
+
+    console.log('[Escudo Frios] histórico', {
+      carregados:todos.length,
+      total:Number(pg.total||todos.length),
+      offset
+    });
+
+    if(!temMais){
+      return Object.assign({},dados,{historico:todos});
+    }
+
+    if(Number.isFinite(proximo)&&proximo>offset){
+      offset=proximo;
+    }else if(pagina.length){
+      offset+=pagina.length;
+    }else{
+      throw new Error('Paginação do histórico não avançou.');
+    }
+  }
+
+  throw new Error('Limite de páginas do histórico excedido.');
 }
 
 async function carregarHistoricoCompleto(forcar){
   if(historicoCompletoCarregado&&!forcar)return;
+  if(historicoCarregando)return;
+
+  historicoCarregando=true;
+  historicoErro='';
+  renderHistorico();
+
   try{
     const dados=await apiGetHistorico();
     historico=Array.isArray(dados.historico)?dados.historico:[];
     historicoCompletoCarregado=true;
-    renderHistorico();
+    historicoErro='';
+    console.log('[Escudo Frios] histórico completo carregado:',historico.length);
   }catch(e){
+    historicoErro=e&&e.message?e.message:String(e);
     console.error('Erro ao carregar histórico:',e);
+  }finally{
+    historicoCarregando=false;
+    renderHistorico();
   }
 }
 
@@ -1410,8 +1507,28 @@ async function registrarBaixa(){
   }catch(e){mostrarMsg('msg-baixa','msg-err',e.message);}
 }
 
+function escapeHtml_(valor){
+  return String(valor==null?'':valor)
+    .replace(/&/g,'&amp;')
+    .replace(/</g,'&lt;')
+    .replace(/>/g,'&gt;')
+    .replace(/"/g,'&quot;')
+    .replace(/'/g,'&#039;');
+}
+
 function renderHistorico(){
   const tb=document.getElementById('tbody-historico');
+  if(!tb)return;
+
+  if(historicoCarregando){
+    tb.innerHTML='<tr><td colspan="7" style="text-align:center;color:var(--text2);padding:24px 0;"><i class="ti ti-loader-2"></i> Carregando histórico...</td></tr>';
+    return;
+  }
+
+  if(historicoErro&&!historico.length){
+    tb.innerHTML='<tr><td colspan="7" style="text-align:center;color:var(--red-text);padding:24px 12px;">Falha ao carregar histórico.<br><span style="font-size:11px;color:var(--text3);">'+escapeHtml_(historicoErro)+'</span><br><button class="btn-sm" style="margin-top:10px;" onclick="carregarHistoricoCompleto(true)"><i class="ti ti-refresh"></i> Tentar novamente</button></td></tr>';
+    return;
+  }
 
   const fProduto=(document.getElementById('hist-f-produto')?.value||'').trim().toLowerCase();
   const fTipo=document.getElementById('hist-f-tipo')?.value||'';
