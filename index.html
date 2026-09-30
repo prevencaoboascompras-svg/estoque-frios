@@ -565,7 +565,7 @@ tr:hover td{background:rgba(255,255,255,.025);}
         <input type="text" id="baixa-resp" placeholder="Atendente (preenchido pelo login, editável)">
       </div>
     </div>
-    <button class="btn-primary" onclick="registrarBaixa()"><i class="ti ti-package-export"></i> Confirmar baixa</button>
+    <button id="btn-confirmar-baixa" class="btn-primary" onclick="registrarBaixa()"><i class="ti ti-package-export"></i> Confirmar baixa</button>
   </div>
   <div class="form-card" style="margin-top:0;">
     <h3>Padrão EAN-13 da sua balança</h3>
@@ -652,7 +652,7 @@ tr:hover td{background:rgba(255,255,255,.025);}
 </div>
 
 <script>
-const ESCUDO_FRIOS_BUILD='v39-historico-paralelo';
+const ESCUDO_FRIOS_BUILD='v41-baixa-negativa-controlada';
 console.info('[Escudo Frios]',ESCUDO_FRIOS_BUILD);
 
 const PRODUTOS_BASE=[
@@ -695,6 +695,7 @@ let historicoUltimaSync=0;
 let cacheVisualAtivo=false;
 
 function aplicarDadosServidor(dados){
+  let recebeuHistorico=false;
   if(dados&&Array.isArray(dados.estoque)){
     estoque=dados.estoque.map(p=>{
       if(p.precoKg===undefined||p.precoKg===''){
@@ -704,14 +705,15 @@ function aplicarDadosServidor(dados){
       return p;
     });
   }
-  // v33: a leitura rápida do dashboard não substitui o histórico já carregado.
+  // Leitura rápida do dashboard não substitui nem rerenderiza o histórico sem necessidade.
   if(dados&&Object.prototype.hasOwnProperty.call(dados,'historico')&&Array.isArray(dados.historico)){
     historico=dados.historico;
+    recebeuHistorico=true;
   }
   popularSelect();
   renderEstoque();
   renderPrecos();
-  renderHistorico();
+  if(recebeuHistorico)renderHistorico();
   atualizarSummary();
 }
 
@@ -783,7 +785,12 @@ async function fetchJsonComTimeout_(url,opts,timeoutMs){
       throw new Error('Resposta não-JSON do servidor'+(trecho?' — '+trecho:''));
     }
 
-    if(dados&&dados.ok===false)throw new Error(dados.erro||'Falha ao consultar o servidor.');
+    if(dados&&dados.ok===false){
+      const err=new Error(dados.erro||'Falha ao consultar o servidor.');
+      err.escudoServidorRespondeu=true;
+      err.escudoDados=dados;
+      throw err;
+    }
     return dados||{};
   }catch(e){
     if(e&&e.name==='AbortError')throw new Error('Tempo limite ao consultar o servidor.');
@@ -797,11 +804,11 @@ async function apiGetDados(){
   const sep=SHEETS_API_URL.includes('?')?'&':'?';
   const url=SHEETS_API_URL+sep+'action=estado&_ts='+Date.now();
   try{
-    return await fetchJsonComTimeout_(url,{},22000);
+    return await fetchJsonComTimeout_(url,{},9000);
   }catch(e){
-    // Cold start do Apps Script: uma segunda tentativa costuma responder rapidamente.
-    await new Promise(r=>setTimeout(r,900));
-    return await fetchJsonComTimeout_(url.replace(/_ts=\d+/, '_ts='+Date.now()),{},35000);
+    // Cold start do Apps Script: uma segunda tentativa curta evita deixar a tela presa por quase 1 minuto.
+    await new Promise(r=>setTimeout(r,500));
+    return await fetchJsonComTimeout_(url.replace(/_ts=\d+/, '_ts='+Date.now()),{},16000);
   }
 }
 
@@ -974,15 +981,15 @@ async function apiPostAcao(action,payload){
   try{
     const corpo=Object.assign({action},payload||{});
     if(critica){op=_opObterOuCriar_(action,payload||{});corpo.operacaoId=op.id;}
-    const r=await fetch(SHEETS_API_URL,{
+
+    // POST também tem limite de tempo. Se a resposta se perder, a confirmação por operacaoId
+    // continua protegendo contra duplicidade.
+    const dados=await fetchJsonComTimeout_(SHEETS_API_URL,{
       method:'POST',
       headers:{'Content-Type':'text/plain;charset=utf-8'},
       body:JSON.stringify(corpo)
-    });
-    const txt=await r.text();
-    let dados;
-    try{dados=JSON.parse(txt);}catch(e){throw new Error('O servidor retornou uma resposta inválida.');}
-    if(!dados||dados.ok!==true)throw new Error((dados&&dados.erro)||'A operação não foi confirmada pelo servidor.');
+    },18000);
+
     if(op)_opLimpar_(op.fp);
     aplicarDadosServidor(dados);
     salvarCacheEstado();
@@ -992,6 +999,24 @@ async function apiPostAcao(action,payload){
     return dados;
   }catch(e){
     console.error('Erro na operação '+action,e);
+
+    // Se o servidor respondeu com ok:false, não houve "perda de confirmação".
+    // Mostra imediatamente o erro real (ex.: estoque insuficiente) em vez de esperar
+    // várias consultas e depois acusar falsamente falha de conexão.
+    if(e&&e.escudoServidorRespondeu){
+      if(op)_opLimpar_(op.fp);
+      setSaveStatus('Não gravado','#e05252');
+      // Atualiza o saldo oficial em segundo plano sem segurar a mensagem ao operador.
+      apiGetDados().then(d=>{
+        aplicarDadosServidor(d);
+        salvarCacheEstado();
+        cacheVisualAtivo=false;
+      }).catch(()=>{});
+      throw e;
+    }
+
+    // Só entra na confirmação quando a resposta realmente pode ter se perdido
+    // (timeout, rede, redirecionamento/HTTP inválido etc.).
     if(critica&&op){
       setSaveStatus('Confirmando gravação...','#f59e0b');
       const conf=await apiConfirmarOperacao_(op.id);
@@ -1563,18 +1588,32 @@ async function registrarBaixa(){
   }
   if(d.erro)return mostrarMsg('msg-baixa','msg-err',d.erro);
   if(!d.pesoKg||d.pesoKg<=0)return mostrarMsg('msg-baixa','msg-err','Informe a quantidade/peso ou o valor total da baixa.');
+
   const pesoKg=d.pesoKg;
   const und=d.prod.unidade||'kg';
+  // Baixa negativa é permitida de propósito. O saldo negativo funciona como
+  // sinal de divergência operacional até que as entradas pendentes sejam lançadas.
+
+  const btn=document.getElementById('btn-confirmar-baixa');
+  if(btn){btn.disabled=true;btn.style.opacity='0.65';btn.style.cursor='wait';}
   try{
     const dados=await apiPostAcao('registrarBaixa',{codigo:String(d.prod.codigo),peso:pesoKg,resp,origem:d.origem,valorTotal:d.valorUsado||0});
     const detalheValor=d.valorUsado>0?' — valor R$ '+d.valorUsado.toFixed(2):'';
-    mostrarMsg('msg-baixa','msg-ok','✓ Baixa de '+pesoKg.toFixed(3)+' '+und+detalheValor+'. Saldo total: '+Number(dados.saldoApos||0).toFixed(3)+' '+und);
+    const saldoApos=Number(dados.saldoApos||0);
+    const avisoNegativo=saldoApos<0
+      ? ' ⚠ Saldo negativo registrado para conferência/conciliação de entradas.'
+      : '';
+    mostrarMsg('msg-baixa','msg-ok','✓ Baixa de '+pesoKg.toFixed(3)+' '+und+detalheValor+'. Saldo total: '+saldoApos.toFixed(3)+' '+und+'.'+avisoNegativo);
     document.getElementById('baixa-upc').value='';
     document.getElementById('baixa-produto').value='';
     document.getElementById('baixa-manual').value='';
     document.getElementById('baixa-valor').value='';
     document.getElementById('upc-box').classList.remove('show');
-  }catch(e){mostrarMsg('msg-baixa','msg-err',e.message);}
+  }catch(e){
+    mostrarMsg('msg-baixa','msg-err',e.message);
+  }finally{
+    if(btn){btn.disabled=false;btn.style.opacity='';btn.style.cursor='';}
+  }
 }
 
 function escapeHtml_(valor){
