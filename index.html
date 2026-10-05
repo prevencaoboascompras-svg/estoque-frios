@@ -1,4 +1,6 @@
-<html><head>
+<!doctype html>
+<html lang="pt-BR"><head>
+<meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Escudo Padaria · Estoque de Frios</title><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
 <link rel="icon" type="image/png" href="escudo_padaria_aura_logo.png">
 <link rel="stylesheet" href="https://unpkg.com/@tabler/icons-webfont@3.10.0/dist/tabler-icons.min.css">
@@ -397,6 +399,30 @@ tr:hover td{background:rgba(255,255,255,.025);}
   .login-avatar-circle{width:52px;height:52px;}
 }
 
+
+/* v42: pendência separada do estoque físico; três recebimentos recentes. */
+.summary-detail,.saldo-atual-label{font-size:11px;color:var(--text2);margin-top:5px;line-height:1.5;}
+.saldo-atual-label{display:block;margin:0;}
+.lote-prioridade{border-color:#e2b600!important;}
+.b-first{background:#e2b600;color:#181818;font-size:9px;white-space:normal;}
+.lote-cards{grid-template-columns:repeat(3,minmax(0,1fr));}
+.lote-card{min-width:0;}
+.lote-info .li-row{flex-wrap:wrap;}
+.lote-qtd{font-size:17px;}
+.pendencia-estoque{margin:9px;padding:11px;background:rgba(239,68,68,.09);border:1px solid rgba(239,68,68,.55);border-radius:7px;}
+.pendencia-titulo{display:flex;gap:6px;flex-wrap:wrap;font-size:11px;font-weight:700;color:var(--red-text);}
+.pendencia-titulo strong{font-size:16px;margin-left:auto;}
+.pendencia-estoque p{font-size:12px;color:var(--text2);margin:6px 0;line-height:1.5;}
+.pendencia-ajustes{margin-top:6px;}
+.entrada-previa{font-size:13px;color:var(--yellow);line-height:1.6;margin:8px 0;}
+.dialog-lotes{background:var(--bg2);color:var(--text);border:1px solid var(--border);border-radius:10px;width:min(680px,90vw);padding:18px;max-height:85vh;overflow:auto;}
+.dialog-lotes::backdrop{background:rgba(0,0,0,.7);}
+.dialog-header{display:flex;align-items:center;justify-content:space-between;gap:12px;}
+#dialog-lotes-conteudo{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;}
+.historico-detalhe{font-size:11px;font-weight:400;color:var(--text2);max-width:360px;line-height:1.5;margin-top:4px;}
+@media(max-width:1100px){#estoque-cards{grid-template-columns:repeat(2,minmax(0,1fr));}}
+@media(max-width:620px){.lote-cards{grid-template-columns:repeat(2,minmax(0,1fr));}#dialog-lotes-conteudo{grid-template-columns:1fr;}.lotes-ocultos-info{flex-wrap:wrap;}}
+
 </style>
 
 </head><body>
@@ -463,7 +489,7 @@ tr:hover td{background:rgba(255,255,255,.025);}
 <div class="cards" id="summary-cards" style="grid-template-columns:repeat(4,1fr);margin-bottom:20px;">
   <div class="card-m"><div class="label"><i class="ti ti-packages"></i> Produtos cadastrados</div><div class="val val-white" id="s-total">—</div></div>
   <div class="card-m"><div class="label"><i class="ti ti-circle-check"></i> Estoque OK</div><div class="val val-green" id="s-ok">—</div></div>
-  <div class="card-m"><div class="label"><i class="ti ti-alert-triangle"></i> Estoque baixo / zerado</div><div class="val val-yellow" id="s-low">—</div></div>
+  <div class="card-m"><div class="label"><i class="ti ti-alert-triangle"></i> Atenção de estoque</div><div class="val val-yellow" id="s-low">—</div><div class="summary-detail" id="s-low-detail">Baixo — · Zerado — · Negativo —</div></div>
   <div class="card-m"><div class="label"><i class="ti ti-calendar-exclamation"></i> Validades críticas</div><div class="val val-white" id="s-venc">—</div></div>
 </div>
 
@@ -499,7 +525,13 @@ tr:hover td{background:rgba(255,255,255,.025);}
     <button class="btn-primary" onclick="adicionarProduto()"><i class="ti ti-database-plus"></i> Adicionar Produto ao Banco</button>
   </div>
 
+  <div class="dashboard-lotes-regra">Até 3 lotes mais recentes por produto, ordenados por validade. O saldo total inclui todos os lotes.</div>
+  <div class="msg msg-err" id="aviso-backend">Atualize a implantação do servidor para a v31 antes de registrar entradas com compensação.</div>
   <div id="estoque-cards"></div>
+  <dialog id="dialog-lotes" class="dialog-lotes" aria-labelledby="dialog-lotes-titulo">
+    <div class="dialog-header"><h3 id="dialog-lotes-titulo">Lotes anteriores</h3><button class="btn-sm" onclick="document.getElementById('dialog-lotes').close()">Fechar</button></div>
+    <p class="summary-detail">Estes lotes continuam no saldo total e participam da baixa por validade.</p><div id="dialog-lotes-conteudo"></div>
+  </dialog>
 </div>
 
 <div class="section" id="sec-entrada">
@@ -516,7 +548,7 @@ tr:hover td{background:rgba(255,255,255,.025);}
     </div>
     <div class="frow frow3">
       <div class="field"><label>Quantidade / Peso recebido</label>
-        <input type="number" id="ent-peso" placeholder="ex: 2.350" step="0.001" min="0">
+        <input type="number" oninput="atualizarPreviaEntrada()" id="ent-peso" placeholder="ex: 2.350" step="0.001" min="0">
       </div>
       <div class="field"><label>Validade</label>
         <input type="date" id="ent-validade">
@@ -526,8 +558,9 @@ tr:hover td{background:rgba(255,255,255,.025);}
       </div>
     </div>
     <div style="display:flex;align-items:center;gap:12px;margin-top:4px;">
+      <div id="ent-compensacao-previa" class="entrada-previa" aria-live="polite"></div>
       <button class="btn-primary" onclick="registrarEntrada()"><i class="ti ti-package-import"></i> Confirmar entrada</button>
-      <span style="font-size:12px;color:var(--text3);">Se a validade for nova, um novo lote independente será criado.</span>
+      <span style="font-size:12px;color:var(--text3);">A entrada primeiro compensa as pendências negativas. O restante fica disponível em um novo lote.</span>
     </div>
   </div>
 </div>
@@ -618,6 +651,7 @@ tr:hover td{background:rgba(255,255,255,.025);}
           <option value="entrada">Entrada</option>
           <option value="baixa">Baixa</option>
           <option value="estorno">Estorno</option>
+          <option value="conciliacao">Conciliação</option>
         </select>
       </div>
       <div class="field">
@@ -652,7 +686,7 @@ tr:hover td{background:rgba(255,255,255,.025);}
 </div>
 
 <script>
-const ESCUDO_FRIOS_BUILD='v41-baixa-negativa-controlada';
+const ESCUDO_FRIOS_BUILD='v42-compensacao-negativos-tres-lotes';
 console.info('[Escudo Frios]',ESCUDO_FRIOS_BUILD);
 
 const PRODUTOS_BASE=[
@@ -693,8 +727,12 @@ let historicoErro='';
 let historicoCacheCarregado=false;
 let historicoUltimaSync=0;
 let cacheVisualAtivo=false;
+let servidorCompensaNegativos=false;
 
 function aplicarDadosServidor(dados){
+  if(dados && dados.versao) servidorCompensaNegativos=!!dados.regrasEstoque?.compensacaoNegativos;
+  const aviso=document.getElementById('aviso-backend');
+  if(aviso && dados?.versao) aviso.classList.toggle('show',!servidorCompensaNegativos);
   let recebeuHistorico=false;
   if(dados&&Array.isArray(dados.estoque)){
     estoque=dados.estoque.map(p=>{
@@ -715,6 +753,9 @@ function aplicarDadosServidor(dados){
   renderPrecos();
   if(recebeuHistorico)renderHistorico();
   atualizarSummary();
+  atualizarPreviaEntrada();
+  const dialog=document.getElementById("dialog-lotes");
+  if(dialog?.open && dialog.dataset.codigo) preencherLotesAnteriores(dialog.dataset.codigo);
 }
 
 function salvarCacheEstado(){
@@ -1148,154 +1189,96 @@ function fmtHora(ts){
   return d.toLocaleDateString('pt-BR')+' '+d.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
 }
 
-const DASH_MAX_LOTES_POR_PRODUTO = 2;
-const _dashboardLotesExpandidos = new Set();
-
-function _loteRecencia_(it, idx){
-  const ts=Number(it && it.atualizadoEm);
-  if(Number.isFinite(ts) && ts>0)return ts;
-  const data=String((it&&it.dataEntrada)||'').trim();
-  const base=data ? Date.parse(data+'T12:00:00') : 0;
-  // O índice desempata entradas feitas no mesmo dia: lotes novos são inseridos no fim do array.
-  return (Number.isFinite(base)?base:0) + (Number(idx)||0);
+const DASH_MAX_LOTES_POR_PRODUTO = 3;
+function fmtPeso(v){return Number(v||0).toLocaleString('pt-BR',{minimumFractionDigits:3,maximumFractionDigits:3});}
+function _loteRecencia_(it,idx){
+  // Baixa, ajuste e conciliação não tornam um recebimento antigo mais recente.
+  const base=Date.parse(String(it.dataEntrada||'')+'T12:00:00');
+  return Number.isFinite(base)?base:0;
 }
-
-function _marcarLoteAtualizado_(lote){
-  if(lote) lote.atualizadoEm=Date.now();
+function _compararRecencia_(a,b){return _loteRecencia_(b)-_loteRecencia_(a)||b.idx-a.idx;}
+function _compararValidade_(a,b){return String(a.validade||'9999-12-31').localeCompare(String(b.validade||'9999-12-31'))||_loteRecencia_(a)-_loteRecencia_(b)||a.idx-b.idx;}
+function _marcarLoteAtualizado_(lote){if(lote) lote.atualizadoEm=Date.now();}
+function lotesProdutoDashboard(codigo){
+  return estoque.map((p,idx)=>({...p,idx})).filter(p=>String(p.codigo)===String(codigo));
 }
-
-function toggleLotesDashboard(codigo){
-  codigo=String(codigo||'');
-  if(_dashboardLotesExpandidos.has(codigo))_dashboardLotesExpandidos.delete(codigo);
-  else _dashboardLotesExpandidos.add(codigo);
-  renderEstoque();
+function loteCardHtml(it,primeiro,min){
+  const sv=statusVal(it.validade), und=escapeHtml_(it.unidade||'kg');
+  const badge=sv==='vencido'?'<span class="badge b-venc">Vencido</span>':sv==='vencendo'?'<span class="badge b-low">Vence em breve</span>':'';
+  return `<div class="lote-card ${primeiro?'lote-prioridade':''}">
+    <div class="lote-top"><span class="lote-qtd">${fmtPeso(it.saldo)} ${und}</span>${primeiro?'<span class="badge b-first">USAR PRIMEIRO</span>':''}</div>
+    <div class="lote-info">
+      <div class="li-row"><span class="li-label">Validade</span><strong>${fmtData(it.validade)}</strong></div>
+      ${badge?`<div>${badge}</div>`:''}
+      <div class="li-row"><span class="li-label">Entrada</span><span>${fmtData(it.dataEntrada)}</span></div>
+      <div class="li-row"><span class="li-label">Preço/${und}</span><span>${it.precoKg?Number(it.precoKg).toLocaleString('pt-BR',{style:'currency',currency:'BRL'}):'—'}</span></div>
+    </div>
+    <div class="lote-actions"><button class="btn-sm" onclick="editarValidade(${it.idx})"><i class="ti ti-calendar"></i> Alterar validade</button><button class="btn-sm" onclick="corrigirSaldo(${it.idx})"><i class="ti ti-adjustments-horizontal"></i> Ajustar saldo</button></div>
+  </div>`;
 }
-
+function preencherLotesAnteriores(codigo){
+  const todos=lotesProdutoDashboard(codigo).filter(p=>Number(p.saldo)>0).sort(_compararRecencia_);
+  const prioridade=[...todos].sort(_compararValidade_)[0];
+  const anteriores=todos.slice(DASH_MAX_LOTES_POR_PRODUTO).sort(_compararValidade_);
+  document.getElementById('dialog-lotes-conteudo').innerHTML=anteriores.length
+    ? anteriores.map(p=>loteCardHtml(p,p.idx===prioridade?.idx,0)).join('')
+    : '<p>Nenhum lote anterior com saldo.</p>';
+}
+function verLotesAnteriores(codigo){
+  const dialog=document.getElementById('dialog-lotes');
+  dialog.dataset.codigo=String(codigo);
+  preencherLotesAnteriores(codigo);
+  dialog.showModal();
+}
+async function conciliarPendencias(codigo){
+  if(!servidorCompensaNegativos)return alert('Atualize o servidor para a v31 antes de compensar as pendências.');
+  try{
+    const dados=await apiPostAcao('conciliarPendencias',{codigo:String(codigo),resp:usuarioAtual()});
+    alert(dados.mensagem+' Quantidade compensada: '+fmtPeso(dados.compensado)+'.');
+  }catch(e){alert('Não foi possível conciliar: '+e.message);}
+}
 function renderEstoque(){
   const cont=document.getElementById('estoque-cards');
-
-  if(!estoque.length){
-    cont.innerHTML='<div class="produto-empty">Nenhum produto cadastrado ainda.</div>';
-    return;
-  }
-
-  // Agrupa todos os lotes por produto. Nada é apagado do banco/histórico aqui:
-  // o dashboard apenas oculta lotes zerados e limita a visualização inicial.
-  const grupos={};
-  const ordem=[];
-  estoque.forEach((p,i)=>{
-    if(!grupos[p.codigo]){
-      grupos[p.codigo]={codigo:p.codigo,nome:p.nome,unidade:p.unidade||'kg',min:Number(p.min)||0,itens:[]};
-      ordem.push(p.codigo);
-    }
-    grupos[p.codigo].itens.push({...p, idx:i});
+  if(!estoque.length){cont.innerHTML='<div class="produto-empty">Nenhum produto cadastrado ainda.</div>';return;}
+  const grupos=new Map();
+  estoque.forEach((p,idx)=>{
+    const cod=String(p.codigo);
+    if(!grupos.has(cod))grupos.set(cod,{codigo:cod,nome:p.nome,unidade:p.unidade||'kg',min:Number(p.min)||0,itens:[]});
+    grupos.get(cod).itens.push({...p,idx});
   });
-
-  let gruposVisiveis=0;
-  const html=ordem.map(cod=>{
-    const g=grupos[cod];
-    const und=g.unidade;
-
-    // Regra do dashboard:
-    // - saldo = 0 fica oculto;
-    // - saldo < 0 NUNCA fica oculto, pois exige conferência de pesagem/baixa;
-    // - dos lotes positivos, mostra inicialmente os 2 mais recentes.
-    const naoZerados=g.itens.filter(it=>Number(it.saldo)!==0);
-    if(!naoZerados.length)return '';
-    gruposVisiveis++;
-
-    const negativos=naoZerados.filter(it=>Number(it.saldo)<0).sort((a,b)=>{
-      const rb=_loteRecencia_(b,b.idx), ra=_loteRecencia_(a,a.idx);
-      if(rb!==ra)return rb-ra;
-      return Number(b.idx)-Number(a.idx);
-    });
-    const positivos=naoZerados.filter(it=>Number(it.saldo)>0).sort((a,b)=>{
-      const rb=_loteRecencia_(b,b.idx), ra=_loteRecencia_(a,a.idx);
-      if(rb!==ra)return rb-ra;
-      return Number(b.idx)-Number(a.idx);
-    });
-
-    // O total do card considera todos os lotes não zerados, inclusive negativos.
-    const total=naoZerados.reduce((s,it)=>s+(Number(it.saldo)||0),0);
-    let totalBadge;
-    if(negativos.length)totalBadge='<span class="badge b-zero">⚠ Saldo negativo</span>';
-    else if(total<g.min)totalBadge='<span class="badge b-low">Baixo</span>';
-    else totalBadge='<span class="badge b-ok">OK</span>';
-
-    // Negativos ficam SEMPRE visíveis. Os positivos seguem a regra dos 2 mais recentes.
-    const ativosOrdenados=[...negativos,...positivos];
-    const expandido=_dashboardLotesExpandidos.has(String(cod));
-    const positivosVisiveis=expandido ? positivos : positivos.slice(0,DASH_MAX_LOTES_POR_PRODUTO);
-    const itensVisiveis=[...negativos,...positivosVisiveis];
-    const ocultos=Math.max(0,positivos.length-positivosVisiveis.length);
-
-    const lotesHtml=itensVisiveis.map(it=>{
-      const sv=statusVal(it.validade);
-      let vBadge='';
-      if(sv==='vencido')vBadge='<span class="badge b-venc">Vencido</span>';
-      else if(sv==='vencendo')vBadge='<span class="badge b-low">Vence em breve</span>';
-
-      const saldoNum=Number(it.saldo)||0;
-      const ehNegativo=saldoNum<0;
-      const qtdBadge=ehNegativo
-        ? '<span class="badge b-zero">NEGATIVO</span>'
-        : (saldoNum<g.min?'<span class="badge b-low">Baixo</span>':'');
-
-      return`<div class="lote-card"${ehNegativo?' style="border-color:rgba(239,68,68,.72);box-shadow:0 0 0 1px rgba(239,68,68,.16) inset;"':''}>
-        <div class="lote-top">
-          <span class="lote-qtd"${ehNegativo?' style="color:var(--red-text);"':''}>${saldoNum.toFixed(3)} ${und}</span>
-          ${qtdBadge}
-        </div>
-        <div class="lote-info">
-          <div class="li-row"><span class="li-label">Entrada</span><span>${fmtData(it.dataEntrada)}</span></div>
-          <div class="li-row"><span class="li-label">Validade</span><span>${fmtData(it.validade)}</span></div>
-          ${vBadge?`<div>${vBadge}</div>`:''}
-          <div class="li-row"><span class="li-label">Preço/kg</span><span>${it.precoKg?('R$ '+Number(it.precoKg).toFixed(2)):'—'}</span></div>
-        </div>
-        <div class="lote-actions">
-          <button class="btn-sm" onclick="editarValidade(${it.idx})"><i class="ti ti-calendar"></i> Validade</button>
-          <button class="btn-sm" onclick="corrigirSaldo(${it.idx})"><i class="ti ti-adjustments-horizontal"></i> Saldo</button>
-        </div>
-      </div>`;
-    }).join('');
-
-    const cat=categoriaProduto(g.nome);
-    const foto=PRODUTO_IMAGENS[g.codigo];
-    const iconeHtml=foto
-      ? `<img src="${foto}" alt="${g.nome}" class="produto-foto" style="border-color:${cat.cor}66;">`
-      : `<span class="produto-icone" style="background:${cat.cor}22;color:${cat.cor};">${cat.icone}</span>`;
-
-    const codUrl=encodeURIComponent(String(cod));
-    const controleLotes=positivos.length>DASH_MAX_LOTES_POR_PRODUTO
-      ? `<div class="lotes-ocultos-info">
-          <span>${expandido?'Todos os lotes positivos estão visíveis':ocultos+' lote'+(ocultos!==1?'s':'')+' positivo'+(ocultos!==1?'s':'')+' anterior'+(ocultos!==1?'es':'')+' oculto'+(ocultos!==1?'s':'')+' da tela inicial'}</span>
-          <button class="btn-sm" onclick="toggleLotesDashboard(decodeURIComponent('${codUrl}'))"><i class="ti ${expandido?'ti-chevron-up':'ti-list-details'}"></i> ${expandido?'Mostrar só os 2 positivos mais recentes':'Ver todos ('+ativosOrdenados.length+')'}</button>
-        </div>`
-      : '';
-
-    return`<div class="produto-group" style="border-top:3px solid ${cat.cor};">
+  const html=[...grupos.values()].map(g=>{
+    const positivos=g.itens.filter(p=>Number(p.saldo)>0).sort(_compararRecencia_);
+    const negativos=g.itens.filter(p=>Number(p.saldo)<0);
+    if(!positivos.length&&!negativos.length)return '';
+    const total=Math.round(g.itens.reduce((v,p)=>v+(Number(p.saldo)||0),0)*1000)/1000;
+    const pendencia=Math.round(negativos.reduce((v,p)=>v-Number(p.saldo),0)*1000)/1000;
+    const primeiro=[...positivos].sort(_compararValidade_)[0];
+    const visiveis=positivos.slice(0,DASH_MAX_LOTES_POR_PRODUTO).sort(_compararValidade_);
+    const anteriores=positivos.length-visiveis.length;
+    const cat=categoriaProduto(g.nome),foto=PRODUTO_IMAGENS[g.codigo];
+    const nome=escapeHtml_(g.nome),codigo=escapeHtml_(g.codigo),und=escapeHtml_(g.unidade);
+    const codJs=encodeURIComponent(g.codigo).replace(/'/g,'%27');
+    const badge=total<0?'<span class="badge b-zero">Negativo</span>':pendencia>0?'<span class="badge b-low">Conciliação pendente</span>':total===0?'<span class="badge b-zero">Zerado</span>':total<g.min?'<span class="badge b-low">Baixo</span>':'<span class="badge b-ok">Normal</span>';
+    const pendenciaHtml=pendencia>0?`<div class="pendencia-estoque">
+      <div class="pendencia-titulo"><i class="ti ti-alert-triangle"></i> PENDÊNCIA DE ESTOQUE <strong>${fmtPeso(pendencia)} ${und}</strong></div>
+      <p>Será compensada automaticamente na próxima entrada.</p>
+      ${positivos.length?`<p>Há entradas anteriores disponíveis para compensar esta pendência.</p><button class="btn-sm" onclick="conciliarPendencias(decodeURIComponent('${codJs}'))">Compensar pendências existentes</button>`:''}
+      <div class="pendencia-ajustes">${negativos.map((p,i)=>`<button class="btn-sm" onclick="corrigirSaldo(${p.idx})">Ajustar pendência${negativos.length>1?' '+(i+1):''}</button>`).join('')}</div>
+    </div>`:'';
+    const prioridadeOculta=primeiro&&!visiveis.some(p=>p.idx===primeiro.idx);
+    return `<div class="produto-group" style="border-top:3px solid ${cat.cor};">
       <div class="produto-header">
-        ${iconeHtml}
-        <div class="produto-header-info">
-          <div class="produto-nome">${g.nome}</div>
-          <div class="produto-cod">Código ${g.codigo} · ${naoZerados.length} lote${naoZerados.length>1?'s':''} com saldo</div>
-          <div class="produto-total">
-            <div class="produto-total-val" style="color:${cat.cor};">${total.toFixed(3)} ${und}</div>
-            ${totalBadge}
-          </div>
-        </div>
-        <div class="produto-header-actions">
-          <button class="btn-sm" onclick="editarProduto(${g.itens[0].idx})"><i class="ti ti-pencil"></i> Editar</button>
-        </div>
+        ${foto?`<img src="${foto}" alt="${nome}" class="produto-foto">`:`<span class="produto-icone" style="background:${cat.cor}22;color:${cat.cor}">${cat.icone}</span>`}
+        <div class="produto-header-info"><div class="produto-nome">${nome}</div><div class="produto-cod">Código ${codigo} · ${positivos.length} lote${positivos.length===1?'':'s'} com estoque</div>
+          <div class="produto-total"><div><span class="saldo-atual-label">Saldo atual</span><div class="produto-total-val" style="color:${total<0?'var(--red-text)':cat.cor}">${fmtPeso(total)} ${und}</div></div>${badge}</div>
+        </div><div class="produto-header-actions"><button class="btn-sm" onclick="editarProduto(${g.itens[0].idx})"><i class="ti ti-pencil"></i> Editar</button></div>
       </div>
-      <div class="lote-cards">${lotesHtml}</div>
-      ${controleLotes}
+      ${pendenciaHtml}
+      ${visiveis.length?`<div class="lote-cards">${visiveis.map(p=>loteCardHtml(p,p.idx===primeiro.idx,g.min)).join('')}</div>`:''}
+      ${anteriores?`<div class="lotes-ocultos-info"><span>${anteriores} lote${anteriores===1?' anterior':'s anteriores'} com saldo${prioridadeOculta?' · O lote de uso prioritário está aqui':''}</span><button class="btn-sm" onclick="verLotesAnteriores(decodeURIComponent('${codJs}'))">Ver lotes anteriores</button></div>`:''}
     </div>`;
   }).join('');
-
-  cont.innerHTML=gruposVisiveis
-    ? html
-    : '<div class="produto-empty">Nenhum lote com saldo positivo no momento. Os produtos continuam cadastrados e disponíveis para novas entradas.</div>';
+  cont.innerHTML=html||'<div class="produto-empty">Nenhum lote com saldo no momento. Os produtos continuam disponíveis para novas entradas.</div>';
 }
 
 async function editarValidade(i){
@@ -1417,7 +1400,7 @@ function atualizarSummary(){
     if(Number(p.saldo)<0)grupos[cod].temNegativo=true;
     if(Number(p.min)>0)grupos[cod].min=Number(p.min);
   });
-  const produtos=Object.values(grupos);
+  const produtos=Object.values(grupos).map(g=>({...g,total:Math.round(g.total*1000)/1000}));
   const produtosUnicos=produtos.length;
   const zerados=produtos.filter(g=>g.total===0&&!g.temNegativo).length;
   const baixos=produtos.filter(g=>!g.temNegativo&&g.total>0&&g.total<g.min).length;
@@ -1428,6 +1411,7 @@ function atualizarSummary(){
   document.getElementById('s-total').textContent=produtosUnicos;
   document.getElementById('s-ok').textContent=ok;
   document.getElementById('s-low').textContent=zerados+baixos+negativos;
+  document.getElementById('s-low-detail').textContent='Baixo '+baixos+' · Zerado '+zerados+' · Negativo '+negativos;
   const vEl=document.getElementById('s-venc');
   vEl.textContent=venc;
   vEl.className='val '+(venc>0?'val-red':'val-white');
@@ -1455,6 +1439,7 @@ function popularSelect(){
 function preencherEntrada(){
   const cod=document.getElementById('ent-produto').value;
   document.getElementById('ent-codigo').value=cod||'';
+  atualizarPreviaEntrada();
 }
 
 function mostrarMsg(id,tipo,txt){
@@ -1471,20 +1456,34 @@ function totalProduto(codigo){
   return Math.round(estoque.filter(p=>p.codigo===codigo).reduce((s,p)=>s+(Number(p.saldo)||0),0)*1000)/1000;
 }
 
+function atualizarPreviaEntrada(){
+  const el=document.getElementById('ent-compensacao-previa');
+  if(!el)return;
+  const codigo=document.getElementById('ent-produto').value;
+  const peso=Number(document.getElementById('ent-peso').value)||0;
+  const lotes=estoque.filter(p=>String(p.codigo)===String(codigo));
+  const pendencia=Math.round(lotes.reduce((v,p)=>v+Math.max(0,-Number(p.saldo||0)),0)*1000)/1000;
+  const und=lotes[0]?.unidade||'kg';
+  el.textContent=codigo&&pendencia>0?'Pendência: '+fmtPeso(pendencia)+' '+und+'. Esta entrada compensa '+fmtPeso(Math.min(pendencia,peso))+' '+und+'; disponível no novo lote: '+fmtPeso(Math.max(0,peso-pendencia))+' '+und+'; pendência restante: '+fmtPeso(Math.max(0,pendencia-peso))+' '+und+'.':'';
+}
+
 async function registrarEntrada(){
   const codigo=document.getElementById('ent-produto').value;
   const peso=parseFloat(document.getElementById('ent-peso').value);
   const val=document.getElementById('ent-validade').value;
   const resp=document.getElementById('ent-resp').value.trim()||usuarioAtual();
+  if(!servidorCompensaNegativos)return mostrarMsg('msg-entrada','msg-err','Atualize a implantação do servidor para a v31 antes de registrar entradas.');
   if(!codigo)return mostrarMsg('msg-entrada','msg-err','Selecione o produto.');
   if(!peso||peso<=0)return mostrarMsg('msg-entrada','msg-err','Informe um peso válido.');
   const prod=estoque.find(p=>String(p.codigo)===String(codigo));
   const und=prod?(prod.unidade||'kg'):'kg';
   try{
     const dados=await apiPostAcao('registrarEntrada',{codigo:String(codigo),peso,validade:val||'',resp});
-    mostrarMsg('msg-entrada','msg-ok','✓ Entrada de '+peso.toFixed(3)+' '+und+' registrada. Saldo total: '+Number(dados.saldoApos||0).toFixed(3)+' '+und+'.');
+    const compensado=dados.compensado??(()=>{try{return JSON.parse(dados.movimento?.lotesMov||'[]').filter(d=>d.papel==='compensacao').reduce((v,d)=>v+Number(d.qtd||0),0);}catch(e){return 0;}})();
+    mostrarMsg('msg-entrada','msg-ok','✓ Entrada de '+fmtPeso(peso)+' '+und+' registrada. '+(Number(compensado)>0?'Compensado: '+fmtPeso(compensado)+' '+und+'. ':'')+'Saldo atual: '+fmtPeso(dados.saldoApos??dados.movimento?.saldoApos)+' '+und+'.');
     document.getElementById('ent-peso').value='';
     document.getElementById('ent-validade').value='';
+    atualizarPreviaEntrada();
   }catch(e){mostrarMsg('msg-entrada','msg-err',e.message);}
 }
 
@@ -1664,23 +1663,25 @@ function renderHistorico(){
     const idxReal=r.idxReal;
     const prod=estoque.find(p=>p.codigo===r.codigo);
     const und=prod?(prod.unidade||'kg'):'kg';
+    const ehConciliacao=r.tipo==='conciliacao';
     const ehEstorno=r.tipo==='estorno';
     const classe=ehEstorno?'b-zero':(r.tipo==='entrada'?'b-entry':'b-baixa');
-    const rotulo=ehEstorno?'Estorno':(r.tipo==='entrada'?'Entrada':'Baixa');
+    const rotulo=ehConciliacao?'Conciliação':ehEstorno?'Estorno':(r.tipo==='entrada'?'Entrada':'Baixa');
     let sinal=r.tipo==='entrada'?'+':'-';
     if(ehEstorno) sinal=r.tipoOriginal==='baixa'?'+':'-';
     const cor=ehEstorno?'var(--red)':(r.tipo==='entrada'?'var(--green)':'var(--yellow)');
-    const podeEstornar=!ehEstorno && !r.estornado;
+    if(ehConciliacao)sinal='';
+    const podeEstornar=!ehEstorno && !ehConciliacao && !r.estornado;
     const acao=podeEstornar
       ? `<button class="btn-sm" style="background:var(--red-bg);color:var(--red-text);border-color:#5a2a2a;margin:0;" onclick="estornarItemHistorico(${idxReal})"><i class="ti ti-arrow-back-up"></i> Estornar</button>`
       : `<span style="font-size:11px;color:var(--text3);">${r.estornado?'Estornado':'—'}</span>`;
     return `<tr>
       <td style="font-size:12px;color:var(--text2);">${fmtHora(r.ts)}</td>
-      <td style="font-weight:600;">${r.nome}</td>
+      <td style="font-weight:600;">${escapeHtml_(r.nome)}${r.detalhe?`<div class="historico-detalhe">${escapeHtml_(r.detalhe)}</div>`:''}</td>
       <td><span class="badge ${classe}">${rotulo}</span></td>
       <td style="font-weight:600;color:${cor};">${sinal}${Math.abs(Number(r.peso)||0).toFixed(3)}</td>
       <td>${Number(r.saldoApos||0).toFixed(3)} ${und}</td>
-      <td style="color:var(--text2);">${r.resp||'—'}</td>
+      <td style="color:var(--text2);">${escapeHtml_(r.resp||'—')}</td>
       <td>${acao}</td>
     </tr>`;
   }).join('');
@@ -1723,14 +1724,15 @@ function exportarRelatorio(){
     txt+=p.nome+'|'+p.codigo+'|'+p.saldo.toFixed(3)+'|'+(p.unidade||'kg')+'|'+fmtData(p.validade)+vObs+'|'+st+'\n';
   });
   txt+='\nHISTÓRICO DE MOVIMENTAÇÕES\n\n';
-  txt+='Data/Hora|Produto|Tipo|Quantidade|Saldo após|Responsável\n';
+  txt+='Data/Hora|Produto|Tipo|Quantidade|Saldo após|Responsável|Detalhes\n';
   [...historico].reverse().forEach(r=>{
     const prod=estoque.find(p=>p.codigo===r.codigo);
     const und=prod?(prod.unidade||'kg'):'kg';
-    const tipoTxt=r.tipo==='estorno'?'Estorno':(r.tipo==='entrada'?'Entrada':'Baixa');
+    const tipoTxt=r.tipo==='conciliacao'?'Conciliação':r.tipo==='estorno'?'Estorno':(r.tipo==='entrada'?'Entrada':'Baixa');
     let sinal=r.tipo==='entrada'?'+':'-';
     if(r.tipo==='estorno') sinal=r.tipoOriginal==='baixa'?'+':'-';
-    txt+=fmtHora(r.ts)+'|'+r.nome+'|'+tipoTxt+'|'+sinal+Math.abs(Number(r.peso)||0).toFixed(3)+' '+und+'|'+Number(r.saldoApos||0).toFixed(3)+' '+und+'|'+(r.resp||'—')+'\n';
+    if(r.tipo==='conciliacao') sinal='';
+    txt+=fmtHora(r.ts)+'|'+r.nome+'|'+tipoTxt+'|'+sinal+Math.abs(Number(r.peso)||0).toFixed(3)+' '+und+'|'+Number(r.saldoApos||0).toFixed(3)+' '+und+'|'+(r.resp||'—')+'|'+(r.detalhe||'')+'\n';
   });
   const blob=new Blob([txt],{type:'text/plain;charset=utf-8'});
   const a=document.createElement('a');
