@@ -1,6 +1,4 @@
-<!doctype html>
-<html lang="pt-BR"><head>
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<html><head>
 <title>Escudo Padaria · Estoque de Frios</title><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
 <link rel="icon" type="image/png" href="escudo_padaria_aura_logo.png">
 <link rel="stylesheet" href="https://unpkg.com/@tabler/icons-webfont@3.10.0/dist/tabler-icons.min.css">
@@ -399,30 +397,6 @@ tr:hover td{background:rgba(255,255,255,.025);}
   .login-avatar-circle{width:52px;height:52px;}
 }
 
-
-/* v42: pendência separada do estoque físico; três recebimentos recentes. */
-.summary-detail,.saldo-atual-label{font-size:11px;color:var(--text2);margin-top:5px;line-height:1.5;}
-.saldo-atual-label{display:block;margin:0;}
-.lote-prioridade{border-color:#e2b600!important;}
-.b-first{background:#e2b600;color:#181818;font-size:9px;white-space:normal;}
-.lote-cards{grid-template-columns:repeat(3,minmax(0,1fr));}
-.lote-card{min-width:0;}
-.lote-info .li-row{flex-wrap:wrap;}
-.lote-qtd{font-size:17px;}
-.pendencia-estoque{margin:9px;padding:11px;background:rgba(239,68,68,.09);border:1px solid rgba(239,68,68,.55);border-radius:7px;}
-.pendencia-titulo{display:flex;gap:6px;flex-wrap:wrap;font-size:11px;font-weight:700;color:var(--red-text);}
-.pendencia-titulo strong{font-size:16px;margin-left:auto;}
-.pendencia-estoque p{font-size:12px;color:var(--text2);margin:6px 0;line-height:1.5;}
-.pendencia-ajustes{margin-top:6px;}
-.entrada-previa{font-size:13px;color:var(--yellow);line-height:1.6;margin:8px 0;}
-.dialog-lotes{background:var(--bg2);color:var(--text);border:1px solid var(--border);border-radius:10px;width:min(680px,90vw);padding:18px;max-height:85vh;overflow:auto;}
-.dialog-lotes::backdrop{background:rgba(0,0,0,.7);}
-.dialog-header{display:flex;align-items:center;justify-content:space-between;gap:12px;}
-#dialog-lotes-conteudo{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;}
-.historico-detalhe{font-size:11px;font-weight:400;color:var(--text2);max-width:360px;line-height:1.5;margin-top:4px;}
-@media(max-width:1100px){#estoque-cards{grid-template-columns:repeat(2,minmax(0,1fr));}}
-@media(max-width:620px){.lote-cards{grid-template-columns:repeat(2,minmax(0,1fr));}#dialog-lotes-conteudo{grid-template-columns:1fr;}.lotes-ocultos-info{flex-wrap:wrap;}}
-
 </style>
 
 </head><body>
@@ -489,7 +463,7 @@ tr:hover td{background:rgba(255,255,255,.025);}
 <div class="cards" id="summary-cards" style="grid-template-columns:repeat(4,1fr);margin-bottom:20px;">
   <div class="card-m"><div class="label"><i class="ti ti-packages"></i> Produtos cadastrados</div><div class="val val-white" id="s-total">—</div></div>
   <div class="card-m"><div class="label"><i class="ti ti-circle-check"></i> Estoque OK</div><div class="val val-green" id="s-ok">—</div></div>
-  <div class="card-m"><div class="label"><i class="ti ti-alert-triangle"></i> Atenção de estoque</div><div class="val val-yellow" id="s-low">—</div><div class="summary-detail" id="s-low-detail">Baixo — · Zerado — · Negativo —</div></div>
+  <div class="card-m"><div class="label"><i class="ti ti-alert-triangle"></i> Estoque baixo / zerado</div><div class="val val-yellow" id="s-low">—</div></div>
   <div class="card-m"><div class="label"><i class="ti ti-calendar-exclamation"></i> Validades críticas</div><div class="val val-white" id="s-venc">—</div></div>
 </div>
 
@@ -525,13 +499,7 @@ tr:hover td{background:rgba(255,255,255,.025);}
     <button class="btn-primary" onclick="adicionarProduto()"><i class="ti ti-database-plus"></i> Adicionar Produto ao Banco</button>
   </div>
 
-  <div class="dashboard-lotes-regra">Até 3 lotes mais recentes por produto, ordenados por validade. O saldo total inclui todos os lotes.</div>
-  <div class="msg msg-err" id="aviso-backend">Atualize a implantação do servidor para a v31 antes de registrar entradas com compensação.</div>
   <div id="estoque-cards"></div>
-  <dialog id="dialog-lotes" class="dialog-lotes" aria-labelledby="dialog-lotes-titulo">
-    <div class="dialog-header"><h3 id="dialog-lotes-titulo">Lotes anteriores</h3><button class="btn-sm" onclick="document.getElementById('dialog-lotes').close()">Fechar</button></div>
-    <p class="summary-detail">Estes lotes continuam no saldo total e participam da baixa por validade.</p><div id="dialog-lotes-conteudo"></div>
-  </dialog>
 </div>
 
 <div class="section" id="sec-entrada">
@@ -548,7 +516,7 @@ tr:hover td{background:rgba(255,255,255,.025);}
     </div>
     <div class="frow frow3">
       <div class="field"><label>Quantidade / Peso recebido</label>
-        <input type="number" oninput="atualizarPreviaEntrada()" id="ent-peso" placeholder="ex: 2.350" step="0.001" min="0">
+        <input type="number" id="ent-peso" placeholder="ex: 2.350" step="0.001" min="0">
       </div>
       <div class="field"><label>Validade</label>
         <input type="date" id="ent-validade">
@@ -558,9 +526,8 @@ tr:hover td{background:rgba(255,255,255,.025);}
       </div>
     </div>
     <div style="display:flex;align-items:center;gap:12px;margin-top:4px;">
-      <div id="ent-compensacao-previa" class="entrada-previa" aria-live="polite"></div>
       <button class="btn-primary" onclick="registrarEntrada()"><i class="ti ti-package-import"></i> Confirmar entrada</button>
-      <span style="font-size:12px;color:var(--text3);">A entrada primeiro compensa as pendências negativas. O restante fica disponível em um novo lote.</span>
+      <span style="font-size:12px;color:var(--text3);">Se a validade for nova, um novo lote independente será criado.</span>
     </div>
   </div>
 </div>
@@ -651,7 +618,6 @@ tr:hover td{background:rgba(255,255,255,.025);}
           <option value="entrada">Entrada</option>
           <option value="baixa">Baixa</option>
           <option value="estorno">Estorno</option>
-          <option value="conciliacao">Conciliação</option>
         </select>
       </div>
       <div class="field">
@@ -686,7 +652,7 @@ tr:hover td{background:rgba(255,255,255,.025);}
 </div>
 
 <script>
-const ESCUDO_FRIOS_BUILD='v42-compensacao-negativos-tres-lotes';
+const ESCUDO_FRIOS_BUILD='v41-baixa-negativa-controlada';
 console.info('[Escudo Frios]',ESCUDO_FRIOS_BUILD);
 
 const PRODUTOS_BASE=[
@@ -727,12 +693,8 @@ let historicoErro='';
 let historicoCacheCarregado=false;
 let historicoUltimaSync=0;
 let cacheVisualAtivo=false;
-let servidorCompensaNegativos=false;
 
 function aplicarDadosServidor(dados){
-  if(dados && dados.versao) servidorCompensaNegativos=!!dados.regrasEstoque?.compensacaoNegativos;
-  const aviso=document.getElementById('aviso-backend');
-  if(aviso && dados?.versao) aviso.classList.toggle('show',!servidorCompensaNegativos);
   let recebeuHistorico=false;
   if(dados&&Array.isArray(dados.estoque)){
     estoque=dados.estoque.map(p=>{
@@ -753,9 +715,6 @@ function aplicarDadosServidor(dados){
   renderPrecos();
   if(recebeuHistorico)renderHistorico();
   atualizarSummary();
-  atualizarPreviaEntrada();
-  const dialog=document.getElementById("dialog-lotes");
-  if(dialog?.open && dialog.dataset.codigo) preencherLotesAnteriores(dialog.dataset.codigo);
 }
 
 function salvarCacheEstado(){
@@ -944,34 +903,23 @@ function atualizarBotaoHistorico_(){
 }
 
 async function carregarHistoricoCompleto(forcar){
-  // Stale-while-revalidate: mostra o último histórico salvo imediatamente e
-  // sincroniza com a planilha sem bloquear a tabela.
   carregarCacheHistorico();
-
-  if(historicoCompletoCarregado&&!forcar)return;
-  if(historicoCarregando)return;
-
-  historicoCarregando=true;
-  historicoErro='';
-  atualizarBotaoHistorico_();
-  renderHistorico();
-
+  if(historicoCompletoCarregado&&!forcar)return {ok:true,cached:true};
+  if(historicoCarregando)return {ok:false,error:'A leitura do histórico já está em andamento.'};
+  const ticket=window.AuraLoader?window.AuraLoader.start({message:'Carregando as movimentações do histórico de estoque…',complete:'Histórico de estoque atualizado'}):0;
+  historicoCarregando=true;historicoErro='';atualizarBotaoHistorico_();renderHistorico();
+  let sucesso=false,erro='';
   try{
     const dados=await apiGetHistorico();
-    historico=Array.isArray(dados.historico)?dados.historico:[];
-    historicoCompletoCarregado=true;
-    historicoErro='';
-    historicoUltimaSync=Date.now();
-    salvarCacheHistorico();
+    if(!dados||dados.ok===false)throw new Error((dados&&dados.erro)||'A API não retornou o histórico completo.');
+    historico=Array.isArray(dados.historico)?dados.historico:[];historicoCompletoCarregado=true;historicoErro='';historicoUltimaSync=Date.now();salvarCacheHistorico();sucesso=true;
     console.log('[Escudo Frios] histórico sincronizado:',historico.length);
+    return {ok:true,total:historico.length};
   }catch(e){
-    historicoErro=e&&e.message?e.message:String(e);
-    // Se existe cache, preserva a lista visível. O erro só impede a atualização.
-    console.error('Erro ao sincronizar histórico:',e);
+    erro=e&&e.message?e.message:String(e);historicoErro=erro;console.error('Erro ao sincronizar histórico:',e);return {ok:false,error:erro};
   }finally{
-    historicoCarregando=false;
-    atualizarBotaoHistorico_();
-    renderHistorico();
+    historicoCarregando=false;atualizarBotaoHistorico_();renderHistorico();
+    if(ticket&&window.AuraLoader){if(sucesso)window.AuraLoader.done();else window.AuraLoader.fail(erro||'Não foi possível atualizar o histórico.');}
   }
 }
 
@@ -1172,9 +1120,10 @@ function categoriaProduto(nome){
 
 function statusVal(v){
   if(!v)return'';
-  const hoje=new Date();hoje.setHours(0,0,0,0);
-  const d=new Date(v+'T00:00:00');
-  const diff=Math.ceil((d-hoje)/86400000);
+  const m=String(v).match(/^(\d{4})-(\d{2})-(\d{2})/);if(!m)return'';
+  const agora=new Date(),y=+m[1],mo=+m[2],dia=+m[3];
+  let diff=Math.round((Date.UTC(y,mo-1,dia)-Date.UTC(agora.getFullYear(),agora.getMonth(),agora.getDate()))/86400000);
+  if(diff===0&&agora.getTime()>new Date(y,mo-1,dia,21,0,0,0).getTime())diff=-1;
   if(diff<0)return'vencido';
   if(diff<=3)return'vencendo';
   return'ok';
@@ -1190,97 +1139,150 @@ function fmtHora(ts){
 }
 
 const DASH_MAX_LOTES_POR_PRODUTO = 3;
-function fmtPeso(v){return Number(v||0).toLocaleString('pt-BR',{minimumFractionDigits:3,maximumFractionDigits:3});}
-function _loteRecencia_(it,idx){
-  // Baixa, ajuste e conciliação não tornam um recebimento antigo mais recente.
-  const base=Date.parse(String(it.dataEntrada||'')+'T12:00:00');
-  return Number.isFinite(base)?base:0;
-}
-function _compararRecencia_(a,b){return _loteRecencia_(b)-_loteRecencia_(a)||b.idx-a.idx;}
-function _compararValidade_(a,b){return String(a.validade||'9999-12-31').localeCompare(String(b.validade||'9999-12-31'))||_loteRecencia_(a)-_loteRecencia_(b)||a.idx-b.idx;}
-function _marcarLoteAtualizado_(lote){if(lote) lote.atualizadoEm=Date.now();}
-function lotesProdutoDashboard(codigo){
-  return estoque.map((p,idx)=>({...p,idx})).filter(p=>String(p.codigo)===String(codigo));
-}
-function loteCardHtml(it,primeiro,min){
-  const sv=statusVal(it.validade), und=escapeHtml_(it.unidade||'kg');
-  const badge=sv==='vencido'?'<span class="badge b-venc">Vencido</span>':sv==='vencendo'?'<span class="badge b-low">Vence em breve</span>':'';
-  return `<div class="lote-card ${primeiro?'lote-prioridade':''}">
-    <div class="lote-top"><span class="lote-qtd">${fmtPeso(it.saldo)} ${und}</span>${primeiro?'<span class="badge b-first">USAR PRIMEIRO</span>':''}</div>
-    <div class="lote-info">
-      <div class="li-row"><span class="li-label">Validade</span><strong>${fmtData(it.validade)}</strong></div>
-      ${badge?`<div>${badge}</div>`:''}
-      <div class="li-row"><span class="li-label">Entrada</span><span>${fmtData(it.dataEntrada)}</span></div>
-      <div class="li-row"><span class="li-label">Preço/${und}</span><span>${it.precoKg?Number(it.precoKg).toLocaleString('pt-BR',{style:'currency',currency:'BRL'}):'—'}</span></div>
-    </div>
-    <div class="lote-actions"><button class="btn-sm" onclick="editarValidade(${it.idx})"><i class="ti ti-calendar"></i> Alterar validade</button><button class="btn-sm" onclick="corrigirSaldo(${it.idx})"><i class="ti ti-adjustments-horizontal"></i> Ajustar saldo</button></div>
-  </div>`;
-}
-function preencherLotesAnteriores(codigo){
-  const todos=lotesProdutoDashboard(codigo).filter(p=>Number(p.saldo)>0).sort(_compararRecencia_);
-  const prioridade=[...todos].sort(_compararValidade_)[0];
-  const anteriores=todos.slice(DASH_MAX_LOTES_POR_PRODUTO).sort(_compararValidade_);
-  document.getElementById('dialog-lotes-conteudo').innerHTML=anteriores.length
-    ? anteriores.map(p=>loteCardHtml(p,p.idx===prioridade?.idx,0)).join('')
-    : '<p>Nenhum lote anterior com saldo.</p>';
-}
-function verLotesAnteriores(codigo){
-  const dialog=document.getElementById('dialog-lotes');
-  dialog.dataset.codigo=String(codigo);
-  preencherLotesAnteriores(codigo);
-  dialog.showModal();
-}
-async function conciliarPendencias(codigo){
-  if(!servidorCompensaNegativos)return alert('Atualize o servidor para a v31 antes de compensar as pendências.');
-  try{
-    const dados=await apiPostAcao('conciliarPendencias',{codigo:String(codigo),resp:usuarioAtual()});
-    alert(dados.mensagem+' Quantidade compensada: '+fmtPeso(dados.compensado)+'.');
-  }catch(e){alert('Não foi possível conciliar: '+e.message);}
-}
-function renderEstoque(){
-  const cont=document.getElementById('estoque-cards');
-  if(!estoque.length){cont.innerHTML='<div class="produto-empty">Nenhum produto cadastrado ainda.</div>';return;}
-  const grupos=new Map();
-  estoque.forEach((p,idx)=>{
-    const cod=String(p.codigo);
-    if(!grupos.has(cod))grupos.set(cod,{codigo:cod,nome:p.nome,unidade:p.unidade||'kg',min:Number(p.min)||0,itens:[]});
-    grupos.get(cod).itens.push({...p,idx});
-  });
-  const html=[...grupos.values()].map(g=>{
-    const positivos=g.itens.filter(p=>Number(p.saldo)>0).sort(_compararRecencia_);
-    const negativos=g.itens.filter(p=>Number(p.saldo)<0);
-    if(!positivos.length&&!negativos.length)return '';
-    const total=Math.round(g.itens.reduce((v,p)=>v+(Number(p.saldo)||0),0)*1000)/1000;
-    const pendencia=Math.round(negativos.reduce((v,p)=>v-Number(p.saldo),0)*1000)/1000;
-    const primeiro=[...positivos].sort(_compararValidade_)[0];
-    const visiveis=positivos.slice(0,DASH_MAX_LOTES_POR_PRODUTO).sort(_compararValidade_);
-    const anteriores=positivos.length-visiveis.length;
-    const cat=categoriaProduto(g.nome),foto=PRODUTO_IMAGENS[g.codigo];
-    const nome=escapeHtml_(g.nome),codigo=escapeHtml_(g.codigo),und=escapeHtml_(g.unidade);
-    const codJs=encodeURIComponent(g.codigo).replace(/'/g,'%27');
-    const badge=total<0?'<span class="badge b-zero">Negativo</span>':pendencia>0?'<span class="badge b-low">Conciliação pendente</span>':total===0?'<span class="badge b-zero">Zerado</span>':total<g.min?'<span class="badge b-low">Baixo</span>':'<span class="badge b-ok">Normal</span>';
-    const pendenciaHtml=pendencia>0?`<div class="pendencia-estoque">
-      <div class="pendencia-titulo"><i class="ti ti-alert-triangle"></i> PENDÊNCIA DE ESTOQUE <strong>${fmtPeso(pendencia)} ${und}</strong></div>
-      <p>Será compensada automaticamente na próxima entrada.</p>
-      ${positivos.length?`<p>Há entradas anteriores disponíveis para compensar esta pendência.</p><button class="btn-sm" onclick="conciliarPendencias(decodeURIComponent('${codJs}'))">Compensar pendências existentes</button>`:''}
-      <div class="pendencia-ajustes">${negativos.map((p,i)=>`<button class="btn-sm" onclick="corrigirSaldo(${p.idx})">Ajustar pendência${negativos.length>1?' '+(i+1):''}</button>`).join('')}</div>
-    </div>`:'';
-    const prioridadeOculta=primeiro&&!visiveis.some(p=>p.idx===primeiro.idx);
-    return `<div class="produto-group" style="border-top:3px solid ${cat.cor};">
-      <div class="produto-header">
-        ${foto?`<img src="${foto}" alt="${nome}" class="produto-foto">`:`<span class="produto-icone" style="background:${cat.cor}22;color:${cat.cor}">${cat.icone}</span>`}
-        <div class="produto-header-info"><div class="produto-nome">${nome}</div><div class="produto-cod">Código ${codigo} · ${positivos.length} lote${positivos.length===1?'':'s'} com estoque</div>
-          <div class="produto-total"><div><span class="saldo-atual-label">Saldo atual</span><div class="produto-total-val" style="color:${total<0?'var(--red-text)':cat.cor}">${fmtPeso(total)} ${und}</div></div>${badge}</div>
-        </div><div class="produto-header-actions"><button class="btn-sm" onclick="editarProduto(${g.itens[0].idx})"><i class="ti ti-pencil"></i> Editar</button></div>
-      </div>
-      ${pendenciaHtml}
-      ${visiveis.length?`<div class="lote-cards">${visiveis.map(p=>loteCardHtml(p,p.idx===primeiro.idx,g.min)).join('')}</div>`:''}
-      ${anteriores?`<div class="lotes-ocultos-info"><span>${anteriores} lote${anteriores===1?' anterior':'s anteriores'} com saldo${prioridadeOculta?' · O lote de uso prioritário está aqui':''}</span><button class="btn-sm" onclick="verLotesAnteriores(decodeURIComponent('${codJs}'))">Ver lotes anteriores</button></div>`:''}
-    </div>`;
-  }).join('');
-  cont.innerHTML=html||'<div class="produto-empty">Nenhum lote com saldo no momento. Os produtos continuam disponíveis para novas entradas.</div>';
+const _dashboardLotesExpandidos = new Set();
+
+function _loteRecencia_(it, idx){
+  const ts=Number(it && it.atualizadoEm);
+  if(Number.isFinite(ts) && ts>0)return ts;
+  const data=String((it&&it.dataEntrada)||'').trim();
+  const base=data ? Date.parse(data+'T12:00:00') : 0;
+  // O índice desempata entradas feitas no mesmo dia: lotes novos são inseridos no fim do array.
+  return (Number.isFinite(base)?base:0) + (Number(idx)||0);
 }
 
+function _marcarLoteAtualizado_(lote){
+  if(lote) lote.atualizadoEm=Date.now();
+}
+
+function toggleLotesDashboard(codigo){
+  codigo=String(codigo||'');
+  if(_dashboardLotesExpandidos.has(codigo))_dashboardLotesExpandidos.delete(codigo);
+  else _dashboardLotesExpandidos.add(codigo);
+  renderEstoque();
+}
+
+function renderEstoque(){
+  const cont=document.getElementById('estoque-cards');
+
+  if(!estoque.length){
+    cont.innerHTML='<div class="produto-empty">Nenhum produto cadastrado ainda.</div>';
+    return;
+  }
+
+  // Agrupa todos os lotes por produto. Saldos zerados continuam visíveis
+  // para que o dashboard também mostre produtos sem estoque disponível.
+  const grupos={};
+  const ordem=[];
+  estoque.forEach((p,i)=>{
+    const codigo=String(p.codigo||'');
+    if(!grupos[codigo]){
+      grupos[codigo]={codigo,nome:p.nome,unidade:p.unidade||'kg',min:Number(p.min)||0,itens:[]};
+      ordem.push(codigo);
+    }
+    grupos[codigo].itens.push({...p, idx:i});
+  });
+
+  let gruposVisiveis=0;
+  const html=ordem.map(cod=>{
+    const g=grupos[cod];
+    const und=g.unidade;
+    const porRecencia=(a,b)=>{
+      const rb=_loteRecencia_(b,b.idx), ra=_loteRecencia_(a,a.idx);
+      if(rb!==ra)return rb-ra;
+      return Number(b.idx)-Number(a.idx);
+    };
+
+    // Saldos negativos ficam sempre visíveis para conferência. Dos demais
+    // lotes (positivos ou zerados), o padrão mostra os 3 mais recentes.
+    const negativos=g.itens.filter(it=>Number(it.saldo)<0).sort(porRecencia);
+    const lotesNaoNegativos=g.itens.filter(it=>Number(it.saldo)>=0).sort(porRecencia);
+    const positivos=lotesNaoNegativos.filter(it=>Number(it.saldo)>0);
+    const total=g.itens.reduce((s,it)=>s+(Number(it.saldo)||0),0);
+    gruposVisiveis++;
+
+    let totalBadge;
+    if(negativos.length)totalBadge='<span class="badge b-zero">⚠ Saldo negativo</span>';
+    else if(total<=0)totalBadge='<span class="badge b-zero">Zerado</span>';
+    else if(total<g.min)totalBadge='<span class="badge b-low">Baixo</span>';
+    else totalBadge='<span class="badge b-ok">OK</span>';
+
+    const expandido=_dashboardLotesExpandidos.has(String(cod));
+    const lotesNormaisVisiveis=expandido
+      ? lotesNaoNegativos
+      : lotesNaoNegativos.slice(0,DASH_MAX_LOTES_POR_PRODUTO);
+    const itensVisiveis=[...negativos,...lotesNormaisVisiveis];
+    const ocultos=Math.max(0,lotesNaoNegativos.length-lotesNormaisVisiveis.length);
+
+    const lotesHtml=itensVisiveis.map(it=>{
+      const sv=statusVal(it.validade);
+      let vBadge='';
+      if(sv==='vencido')vBadge='<span class="badge b-venc">Vencido</span>';
+      else if(sv==='vencendo')vBadge='<span class="badge b-low">Vence em breve</span>';
+
+      const saldoNum=Number(it.saldo)||0;
+      const ehNegativo=saldoNum<0;
+      const qtdBadge=ehNegativo
+        ? '<span class="badge b-zero">NEGATIVO</span>'
+        : (saldoNum===0
+          ? '<span class="badge b-zero">ZERADO</span>'
+          : (saldoNum<g.min?'<span class="badge b-low">Baixo</span>':''));
+
+      return`<div class="lote-card"${ehNegativo?' style="border-color:rgba(239,68,68,.72);box-shadow:0 0 0 1px rgba(239,68,68,.16) inset;':''}>
+        <div class="lote-top">
+          <span class="lote-qtd"${ehNegativo?' style="color:var(--red-text);':''}>${saldoNum.toFixed(3)} ${und}</span>
+          ${qtdBadge}
+        </div>
+        <div class="lote-info">
+          <div class="li-row"><span class="li-label">Entrada</span><span>${fmtData(it.dataEntrada)}</span></div>
+          <div class="li-row"><span class="li-label">Validade</span><span>${fmtData(it.validade)}</span></div>
+          ${vBadge?`<div>${vBadge}</div>`:''}
+          <div class="li-row"><span class="li-label">Preço/kg</span><span>${it.precoKg?('R$ '+Number(it.precoKg).toFixed(2)):'—'}</span></div>
+        </div>
+        <div class="lote-actions">
+          <button class="btn-sm" onclick="editarValidade(${it.idx})"><i class="ti ti-calendar"></i> Validade</button>
+          <button class="btn-sm" onclick="corrigirSaldo(${it.idx})"><i class="ti ti-adjustments-horizontal"></i> Saldo</button>
+        </div>
+      </div>`;
+    }).join('');
+
+    const cat=categoriaProduto(g.nome);
+    const foto=PRODUTO_IMAGENS[g.codigo];
+    const iconeHtml=foto
+      ? `<img src="${foto}" alt="${g.nome}" class="produto-foto" style="border-color:${cat.cor}66;">`
+      : `<span class="produto-icone" style="background:${cat.cor}22;color:${cat.cor};">${cat.icone}</span>`;
+
+    const codUrl=encodeURIComponent(String(cod));
+    const controleLotes=ocultos>0
+      ? `<div class="lotes-ocultos-info">
+          <span>${expandido?'Todos os lotes estão visíveis':ocultos+' lote'+(ocultos!==1?'s':'')+' mais antigo'+(ocultos!==1?'s':'')+' oculto'+(ocultos!==1?'s':'')+' da tela inicial'}</span>
+          <button class="btn-sm" onclick="toggleLotesDashboard(decodeURIComponent('${codUrl}'))"><i class="ti ${expandido?'ti-chevron-up':'ti-list-details'}"></i> ${expandido?'Mostrar só os 3 lotes mais recentes':'Ver todos ('+g.itens.length+')'}</button>
+        </div>`
+      : '';
+
+    return`<div class="produto-group" style="border-top:3px solid ${cat.cor};">
+      <div class="produto-header">
+        ${iconeHtml}
+        <div class="produto-header-info">
+          <div class="produto-nome">${g.nome}</div>
+          <div class="produto-cod">Código ${g.codigo} · ${g.itens.length} lote${g.itens.length!==1?'s':''} cadastrado${g.itens.length!==1?'s':''}</div>
+          <div class="produto-total">
+            <div class="produto-total-val" style="color:${cat.cor};">${total.toFixed(3)} ${und}</div>
+            ${totalBadge}
+          </div>
+        </div>
+        <div class="produto-header-actions">
+          <button class="btn-sm" onclick="editarProduto(${g.itens[0].idx})"><i class="ti ti-pencil"></i> Editar</button>
+        </div>
+      </div>
+      <div class="lote-cards">${lotesHtml}</div>
+      ${controleLotes}
+    </div>`;
+  }).join('');
+
+  cont.innerHTML=gruposVisiveis
+    ? html
+    : '<div class="produto-empty">Nenhum produto cadastrado ainda.</div>';
+}
 async function editarValidade(i){
   const p=estoque[i];
   if(!p||!p.loteId)return alert('Lote sem identificador. Atualize a página e tente novamente.');
@@ -1400,7 +1402,7 @@ function atualizarSummary(){
     if(Number(p.saldo)<0)grupos[cod].temNegativo=true;
     if(Number(p.min)>0)grupos[cod].min=Number(p.min);
   });
-  const produtos=Object.values(grupos).map(g=>({...g,total:Math.round(g.total*1000)/1000}));
+  const produtos=Object.values(grupos);
   const produtosUnicos=produtos.length;
   const zerados=produtos.filter(g=>g.total===0&&!g.temNegativo).length;
   const baixos=produtos.filter(g=>!g.temNegativo&&g.total>0&&g.total<g.min).length;
@@ -1411,7 +1413,6 @@ function atualizarSummary(){
   document.getElementById('s-total').textContent=produtosUnicos;
   document.getElementById('s-ok').textContent=ok;
   document.getElementById('s-low').textContent=zerados+baixos+negativos;
-  document.getElementById('s-low-detail').textContent='Baixo '+baixos+' · Zerado '+zerados+' · Negativo '+negativos;
   const vEl=document.getElementById('s-venc');
   vEl.textContent=venc;
   vEl.className='val '+(venc>0?'val-red':'val-white');
@@ -1439,7 +1440,6 @@ function popularSelect(){
 function preencherEntrada(){
   const cod=document.getElementById('ent-produto').value;
   document.getElementById('ent-codigo').value=cod||'';
-  atualizarPreviaEntrada();
 }
 
 function mostrarMsg(id,tipo,txt){
@@ -1456,34 +1456,20 @@ function totalProduto(codigo){
   return Math.round(estoque.filter(p=>p.codigo===codigo).reduce((s,p)=>s+(Number(p.saldo)||0),0)*1000)/1000;
 }
 
-function atualizarPreviaEntrada(){
-  const el=document.getElementById('ent-compensacao-previa');
-  if(!el)return;
-  const codigo=document.getElementById('ent-produto').value;
-  const peso=Number(document.getElementById('ent-peso').value)||0;
-  const lotes=estoque.filter(p=>String(p.codigo)===String(codigo));
-  const pendencia=Math.round(lotes.reduce((v,p)=>v+Math.max(0,-Number(p.saldo||0)),0)*1000)/1000;
-  const und=lotes[0]?.unidade||'kg';
-  el.textContent=codigo&&pendencia>0?'Pendência: '+fmtPeso(pendencia)+' '+und+'. Esta entrada compensa '+fmtPeso(Math.min(pendencia,peso))+' '+und+'; disponível no novo lote: '+fmtPeso(Math.max(0,peso-pendencia))+' '+und+'; pendência restante: '+fmtPeso(Math.max(0,pendencia-peso))+' '+und+'.':'';
-}
-
 async function registrarEntrada(){
   const codigo=document.getElementById('ent-produto').value;
   const peso=parseFloat(document.getElementById('ent-peso').value);
   const val=document.getElementById('ent-validade').value;
   const resp=document.getElementById('ent-resp').value.trim()||usuarioAtual();
-  if(!servidorCompensaNegativos)return mostrarMsg('msg-entrada','msg-err','Atualize a implantação do servidor para a v31 antes de registrar entradas.');
   if(!codigo)return mostrarMsg('msg-entrada','msg-err','Selecione o produto.');
   if(!peso||peso<=0)return mostrarMsg('msg-entrada','msg-err','Informe um peso válido.');
   const prod=estoque.find(p=>String(p.codigo)===String(codigo));
   const und=prod?(prod.unidade||'kg'):'kg';
   try{
     const dados=await apiPostAcao('registrarEntrada',{codigo:String(codigo),peso,validade:val||'',resp});
-    const compensado=dados.compensado??(()=>{try{return JSON.parse(dados.movimento?.lotesMov||'[]').filter(d=>d.papel==='compensacao').reduce((v,d)=>v+Number(d.qtd||0),0);}catch(e){return 0;}})();
-    mostrarMsg('msg-entrada','msg-ok','✓ Entrada de '+fmtPeso(peso)+' '+und+' registrada. '+(Number(compensado)>0?'Compensado: '+fmtPeso(compensado)+' '+und+'. ':'')+'Saldo atual: '+fmtPeso(dados.saldoApos??dados.movimento?.saldoApos)+' '+und+'.');
+    mostrarMsg('msg-entrada','msg-ok','✓ Entrada de '+peso.toFixed(3)+' '+und+' registrada. Saldo total: '+Number(dados.saldoApos||0).toFixed(3)+' '+und+'.');
     document.getElementById('ent-peso').value='';
     document.getElementById('ent-validade').value='';
-    atualizarPreviaEntrada();
   }catch(e){mostrarMsg('msg-entrada','msg-err',e.message);}
 }
 
@@ -1663,25 +1649,23 @@ function renderHistorico(){
     const idxReal=r.idxReal;
     const prod=estoque.find(p=>p.codigo===r.codigo);
     const und=prod?(prod.unidade||'kg'):'kg';
-    const ehConciliacao=r.tipo==='conciliacao';
     const ehEstorno=r.tipo==='estorno';
     const classe=ehEstorno?'b-zero':(r.tipo==='entrada'?'b-entry':'b-baixa');
-    const rotulo=ehConciliacao?'Conciliação':ehEstorno?'Estorno':(r.tipo==='entrada'?'Entrada':'Baixa');
+    const rotulo=ehEstorno?'Estorno':(r.tipo==='entrada'?'Entrada':'Baixa');
     let sinal=r.tipo==='entrada'?'+':'-';
     if(ehEstorno) sinal=r.tipoOriginal==='baixa'?'+':'-';
     const cor=ehEstorno?'var(--red)':(r.tipo==='entrada'?'var(--green)':'var(--yellow)');
-    if(ehConciliacao)sinal='';
-    const podeEstornar=!ehEstorno && !ehConciliacao && !r.estornado;
+    const podeEstornar=!ehEstorno && !r.estornado;
     const acao=podeEstornar
       ? `<button class="btn-sm" style="background:var(--red-bg);color:var(--red-text);border-color:#5a2a2a;margin:0;" onclick="estornarItemHistorico(${idxReal})"><i class="ti ti-arrow-back-up"></i> Estornar</button>`
       : `<span style="font-size:11px;color:var(--text3);">${r.estornado?'Estornado':'—'}</span>`;
     return `<tr>
       <td style="font-size:12px;color:var(--text2);">${fmtHora(r.ts)}</td>
-      <td style="font-weight:600;">${escapeHtml_(r.nome)}${r.detalhe?`<div class="historico-detalhe">${escapeHtml_(r.detalhe)}</div>`:''}</td>
+      <td style="font-weight:600;">${r.nome}</td>
       <td><span class="badge ${classe}">${rotulo}</span></td>
       <td style="font-weight:600;color:${cor};">${sinal}${Math.abs(Number(r.peso)||0).toFixed(3)}</td>
       <td>${Number(r.saldoApos||0).toFixed(3)} ${und}</td>
-      <td style="color:var(--text2);">${escapeHtml_(r.resp||'—')}</td>
+      <td style="color:var(--text2);">${r.resp||'—'}</td>
       <td>${acao}</td>
     </tr>`;
   }).join('');
@@ -1724,15 +1708,14 @@ function exportarRelatorio(){
     txt+=p.nome+'|'+p.codigo+'|'+p.saldo.toFixed(3)+'|'+(p.unidade||'kg')+'|'+fmtData(p.validade)+vObs+'|'+st+'\n';
   });
   txt+='\nHISTÓRICO DE MOVIMENTAÇÕES\n\n';
-  txt+='Data/Hora|Produto|Tipo|Quantidade|Saldo após|Responsável|Detalhes\n';
+  txt+='Data/Hora|Produto|Tipo|Quantidade|Saldo após|Responsável\n';
   [...historico].reverse().forEach(r=>{
     const prod=estoque.find(p=>p.codigo===r.codigo);
     const und=prod?(prod.unidade||'kg'):'kg';
-    const tipoTxt=r.tipo==='conciliacao'?'Conciliação':r.tipo==='estorno'?'Estorno':(r.tipo==='entrada'?'Entrada':'Baixa');
+    const tipoTxt=r.tipo==='estorno'?'Estorno':(r.tipo==='entrada'?'Entrada':'Baixa');
     let sinal=r.tipo==='entrada'?'+':'-';
     if(r.tipo==='estorno') sinal=r.tipoOriginal==='baixa'?'+':'-';
-    if(r.tipo==='conciliacao') sinal='';
-    txt+=fmtHora(r.ts)+'|'+r.nome+'|'+tipoTxt+'|'+sinal+Math.abs(Number(r.peso)||0).toFixed(3)+' '+und+'|'+Number(r.saldoApos||0).toFixed(3)+' '+und+'|'+(r.resp||'—')+'|'+(r.detalhe||'')+'\n';
+    txt+=fmtHora(r.ts)+'|'+r.nome+'|'+tipoTxt+'|'+sinal+Math.abs(Number(r.peso)||0).toFixed(3)+' '+und+'|'+Number(r.saldoApos||0).toFixed(3)+' '+und+'|'+(r.resp||'—')+'\n';
   });
   const blob=new Blob([txt],{type:'text/plain;charset=utf-8'});
   const a=document.createElement('a');
@@ -1748,5 +1731,145 @@ function atualizarRelogio(){
 // carregar() é chamado assim que a página está pronta (ver <head>)
 atualizarRelogio();
 setInterval(atualizarRelogio,60000);
+</script>
+
+<script id="auraSearchCoreV702">
+// ═══════════════════════════════════════════════════════════════
+// AURA SEARCH CORE v7.02
+// Padrão do ecossistema:
+// • EAN/GTIN completo -> índice O(1), sem varrer catálogo
+// • aliases UPC-12 <-> EAN-13 iniciado por zero
+// • busca textual pré-normalizada + índice de prefixos
+// • entrada digitada usa debounce curto; código completo não espera debounce
+// ═══════════════════════════════════════════════════════════════
+(function(g){
+  'use strict';
+  if(g.AURASearchCore&&g.AURASearchCore.version==='7.02')return;
+  function digits(v){return String(v==null?'':v).replace(/\D/g,'');}
+  function text(v){return String(v==null?'':v).normalize('NFD').replace(/[\u0300-\u036f]/g,'').toUpperCase().replace(/(\d+)\s+(KG|G|GR|ML|L|LT|UN|UND|CX|PCT)\b/g,'$1$2').replace(/[^A-Z0-9]+/g,' ').replace(/\s+/g,' ').trim();}
+  function aliases(v){var d=digits(v),a=[];function add(x){if(x&&a.indexOf(x)<0)a.push(x);}add(d);if(d.length===12)add('0'+d);if(d.length===13&&d.charAt(0)==='0')add(d.substring(1));return a;}
+  function isFullCode(v){var d=digits(v),raw=String(v||'').replace(/\s/g,'');return /^\d{8,14}$/.test(d)&&d===raw;}
+  var C={version:'7.02',entries:[],byCode:Object.create(null),prefix:Object.create(null),codePrefix:Object.create(null),signature:'',ready:false};
+  function addList(map,k,i){if(!k)return;var a=map[k];if(!a)map[k]=[i];else if(a[a.length-1]!==i)a.push(i);}
+  function addAliases(entry,i){aliases(entry.ean).forEach(function(a){C.byCode[a]=entry;for(var n=2;n<=Math.min(a.length,14);n++)addList(C.codePrefix,a.slice(0,n),i);});}
+  C.build=function(records,signature){
+    records=Array.isArray(records)?records:[];
+    var sig=String(signature||records.length);
+    if(C.ready&&C.signature===sig)return C;
+    C.entries=[];C.byCode=Object.create(null);C.prefix=Object.create(null);C.codePrefix=Object.create(null);C.signature=sig;
+    var seen=Object.create(null);
+    records.forEach(function(r){
+      var ean='',descricao='',unidade='',preco='',custo='',fornecedor='',setor='';
+      if(Array.isArray(r)){ean=digits(r[0]);descricao=String(r[1]||'');unidade=String(r[2]||'');preco=r[3];custo=r[4];fornecedor=String(r[5]||'');setor=String(r[6]||'');}
+      else if(r){ean=digits(r.ean||r.cod||r.codigo||r.barras||'');descricao=String(r.descricao||r.nome||r.produto||'');unidade=String(r.unidade||r.un||'');preco=r.preco!=null?r.preco:r.precoNormal;custo=r.custo;fornecedor=String(r.fornecedor||'');setor=String(r.setor||'');}
+      if(!ean&&!descricao)return;
+      var key=ean||('N:'+text(descricao));if(seen[key])return;seen[key]=1;
+      var e={ean:ean,cod:ean,descricao:descricao,nome:descricao,unidade:unidade,preco:preco,custo:custo,fornecedor:fornecedor,setor:setor};
+      e._name=text(descricao);e._supplier=text(fornecedor);e._idx=C.entries.length;C.entries.push(e);addAliases(e,e._idx);
+      var toks=e._name.split(' ').filter(Boolean),tokSeen=Object.create(null);
+      toks.forEach(function(t){if(tokSeen[t])return;tokSeen[t]=1;for(var n=2;n<=Math.min(t.length,10);n++)addList(C.prefix,t.slice(0,n),e._idx);});
+    });
+    C.ready=true;return C;
+  };
+  C.lookup=function(v){var as=aliases(v);for(var i=0;i<as.length;i++){if(C.byCode[as[i]])return C.byCode[as[i]];}return null;};
+  C.search=function(q,limit){
+    q=String(q||'').trim();limit=Math.max(1,Number(limit)||20);if(!q)return[];
+    var d=digits(q),qn=text(q),codeOnly=/^[\d\s.\-\/]+$/.test(q);
+    if(codeOnly&&/^\d{8,14}$/.test(d)){var exact=C.lookup(d);if(exact)return[exact];}
+    var candidates=null;
+    if(codeOnly&&d.length>=2)candidates=C.codePrefix[d.slice(0,Math.min(d.length,14))]||[];
+    if(!codeOnly){
+      var qt=qn.split(' ').filter(Boolean),small=null;
+      qt.forEach(function(t){if(t.length<2)return;var a=C.prefix[t.slice(0,Math.min(t.length,10))]||[];if(small===null||a.length<small.length)small=a;});
+      candidates=small;
+    }
+    if(candidates===null)candidates=C.entries.map(function(_,i){return i;});
+    var qtoks=qn.split(' ').filter(Boolean),out=[];
+    for(var x=0;x<candidates.length;x++){
+      var e=C.entries[candidates[x]];if(!e)continue;var score=0;
+      if(codeOnly&&d){var ed=digits(e.ean);if(ed===d)score+=5000;else if(ed.indexOf(d)===0)score+=1800;else if(ed.indexOf(d)>0)score+=400;else continue;}
+      if(!codeOnly&&qn){var hay=e._name+' '+e._supplier;if(!qtoks.every(function(t){return hay.indexOf(t)>=0;}))continue;if(e._name===qn)score+=2400;else if(e._name.indexOf(qn)===0)score+=1700;else if(e._name.indexOf(qn)>=0)score+=1200;score+=qtoks.length*80;}
+      if(Number(e.preco)>0)score+=8;out.push({e:e,s:score});
+    }
+    out.sort(function(a,b){return b.s-a.s||String(a.e.descricao).localeCompare(String(b.e.descricao),'pt-BR');});
+    return out.slice(0,limit).map(function(x){return x.e;});
+  };
+  C.digits=digits;C.text=text;C.aliases=aliases;C.isFullCode=isFullCode;
+  g.AURASearchCore=C;
+  console.info('[AURA Search Core] v7.02 carregado');
+})(window);
+</script>
+
+<script id="escudoSearchCoreV702">
+(function(){
+  'use strict';
+  var core=window.AURASearchCore;if(!core)return;
+  console.info('[Escudo Padaria] Search Core v7.02 — índice por código + alias UPC/EAN + filtros com debounce');
+  function rebuild(){var arr=(typeof estoque!=='undefined'&&Array.isArray(estoque))?estoque:[];if(!arr.length)return false;var rec=arr.map(function(p){return {ean:p.codigo,nome:p.nome,unidade:p.unidade,preco:p.precoKg};});core.build(rec,String(rec.length)+'|'+rec.map(function(x){return x.ean+':'+x.nome;}).join(';'));return true;}
+  function lookup(c){if(!core.ready)rebuild();return core.lookup(c);}
+  window.obterDadosBaixa=function(){
+    var upc=(document.getElementById('baixa-upc').value||'').replace(/\D/g,''),codSelecionado=(document.getElementById('baixa-produto')||{}).value||'',manual=parseFloat(document.getElementById('baixa-manual').value)||0,valorManual=parseFloat(document.getElementById('baixa-valor').value)||0;
+    var codInt='',valorEtiqueta=0;if(upc.length===13&&upc.charAt(0)==='2'){codInt=parseInt(upc.substring(1,5),10).toString();valorEtiqueta=parseInt(upc.substring(6,12),10)/100;}else if(upc)codInt=upc;else codInt=codSelecionado;
+    rebuild();var p=lookup(codInt||upc||codSelecionado),arr=(typeof estoque!=='undefined'&&Array.isArray(estoque))?estoque:[],prod=null;if(p){for(var z=0;z<arr.length;z++){if(String(arr[z].codigo)===String(p.ean)){prod=arr[z];break;}}}if(prod&&upc){var sel=document.getElementById('baixa-produto');if(sel)sel.value=prod.codigo;}
+    var pesoKg=0,origem='',valorUsado=0,erro='';if(manual>0){pesoKg=manual;origem='Quantidade/peso manual';}else if(valorManual>0){valorUsado=valorManual;origem='Valor total manual';if(prod&&prod.precoKg>0)pesoKg=Math.round((valorManual/prod.precoKg)*1000)/1000;else if(prod)erro='Preço/kg não cadastrado para converter o valor total em peso.';}else if(valorEtiqueta>0){valorUsado=valorEtiqueta;origem='Valor da etiqueta UPC';if(prod&&prod.precoKg>0)pesoKg=Math.round((valorEtiqueta/prod.precoKg)*1000)/1000;else if(prod)erro='Preço/kg não cadastrado para calcular o peso da etiqueta.';}else if(upc)origem='Código informado';
+    return {upc:upc,codInt:codInt,codSelecionado:codSelecionado,manual:manual,valorManual:valorManual,valorEtiqueta:valorEtiqueta,valorUsado:valorUsado,prod:prod,pesoKg:pesoKg,origem:origem,erro:erro};
+  };
+  var oldRender=window.renderHistorico,tm=null;
+  setTimeout(function(){var el=document.getElementById('hist-f-produto');if(el){el.removeAttribute('oninput');el.oninput=function(){clearTimeout(tm);tm=setTimeout(function(){oldRender();},90);};}},0);
+  // Mantém índice sincronizado após cada recarga da base.
+  var oldAplicar=window.aplicarDadosServidor;if(typeof oldAplicar==='function')window.aplicarDadosServidor=function(d){var r=oldAplicar(d);rebuild();return r;};
+  setTimeout(rebuild,0);
+})();
+</script>
+
+<script>console.info('[ESCUDO PADARIA] validade v42.1 — válido até 21:00 do dia impresso');</script>
+<style id="aura-loading-gauge-css">
+#aura-loading-gauge{--ag:#4A8CE8;--abg:#F6F4F1;--acard:#fff;--aink:#1B1B1F;--amute:#6B6B73;--aline:#E4E1DC;--atrack:#E9E6E1;--aok:#4CE660;--aslow:#E8C400;--astuck:#FF8C00;--aerr:#D4001A;position:fixed;inset:0;z-index:2147483000;display:flex;align-items:center;justify-content:center;padding:16px;background:rgba(20,20,26,.25);-webkit-backdrop-filter:blur(7px);backdrop-filter:blur(7px);opacity:0;visibility:hidden;pointer-events:none;transition:opacity .22s,visibility 0s .22s;font-family:Arial,Helvetica,sans-serif;color:var(--aink)}
+@media(prefers-color-scheme:dark){#aura-loading-gauge{--abg:#15151A;--acard:#1F1F26;--aink:#F4F2EE;--amute:#9C9CA6;--aline:#32323C;--atrack:#2D2D36}}
+#aura-loading-gauge[data-theme="light"]{--abg:#F6F4F1;--acard:#fff;--aink:#1B1B1F;--amute:#6B6B73;--aline:#E4E1DC;--atrack:#E9E6E1}
+#aura-loading-gauge.on{opacity:1;visibility:visible;pointer-events:auto;transition:opacity .22s}
+#aura-loading-gauge *{box-sizing:border-box}
+#aura-loading-gauge .ag-panel{--c:var(--ag);width:min(350px,100%);background:var(--acard);border:1px solid var(--aline);border-top:4px solid var(--c);border-radius:16px;padding:12px 16px 15px;box-shadow:0 18px 48px rgba(0,0,0,.28);transform:scale(.96);transition:transform .24s,border-color .2s}
+#aura-loading-gauge.on .ag-panel{transform:none}
+#aura-loading-gauge[data-s="slow"] .ag-panel{--c:var(--aslow)}#aura-loading-gauge[data-s="stuck"] .ag-panel{--c:var(--astuck)}#aura-loading-gauge[data-s="err"] .ag-panel{--c:var(--aerr)}#aura-loading-gauge[data-s="ok"] .ag-panel{--c:var(--aok)}
+#aura-loading-gauge .ag-brand{display:flex;justify-content:space-between;align-items:center;font-size:11px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--amute)}#aura-loading-gauge .ag-brand b{color:var(--aink)}
+#aura-loading-gauge .ag-gauge{display:block;width:100%;height:auto;max-height:146px;margin:1px auto 0}
+#aura-loading-gauge .ag-arc{fill:none;stroke-linecap:round;stroke-width:16}#aura-loading-gauge .ag-track{stroke:var(--atrack)}#aura-loading-gauge .ag-fill{stroke:var(--c);transition:stroke .2s}
+#aura-loading-gauge .ag-tick{stroke:var(--amute);stroke-width:2;opacity:.5}#aura-loading-gauge .ag-needle{transform-origin:150px 150px;transition:transform .16s linear}#aura-loading-gauge .ag-needle line{stroke:var(--aink);stroke-width:5;stroke-linecap:round}#aura-loading-gauge .ag-hub{fill:var(--aink)}#aura-loading-gauge .ag-hubi{fill:var(--c)}
+#aura-loading-gauge[data-s="stuck"] .ag-needle{animation:ag-tremor .5s infinite}#aura-loading-gauge[data-s="stuck"] .ag-pct,#aura-loading-gauge[data-s="err"] .ag-pct{animation:ag-pulse 1.1s infinite}@keyframes ag-tremor{0%,100%{transform:rotate(var(--a))}50%{transform:rotate(calc(var(--a) + 2.5deg))}}@keyframes ag-pulse{50%{opacity:.5}}
+#aura-loading-gauge .ag-pct{font-size:31px;font-weight:900;text-align:center;font-variant-numeric:tabular-nums;margin-top:0}#aura-loading-gauge .ag-msg{text-align:center;font-size:14px;font-weight:750;margin-top:1px;line-height:1.35}#aura-loading-gauge .ag-meta{text-align:center;color:var(--amute);font-size:12px;margin-top:3px;min-height:16px;line-height:1.35}
+#aura-loading-gauge .ag-actions{display:flex;justify-content:center;gap:8px;margin-top:10px}#aura-loading-gauge .ag-actions:empty{display:none}#aura-loading-gauge .ag-actions button{font:inherit;font-size:13px;font-weight:700;border:1px solid var(--aline);border-radius:9px;background:var(--abg);color:var(--aink);padding:7px 12px;cursor:pointer}#aura-loading-gauge .ag-actions button:focus-visible{outline:3px solid var(--ag);outline-offset:2px}
+@media(prefers-reduced-motion:reduce){#aura-loading-gauge,#aura-loading-gauge *{transition:none!important;animation:none!important}}
+</style>
+<div id="aura-loading-gauge" role="status" aria-live="polite" aria-atomic="true" data-s="run">
+ <div class="ag-panel"><div class="ag-brand"><b>AURA System</b><span>Processando</span></div>
+  <svg class="ag-gauge" viewBox="0 0 300 166" aria-hidden="true"><g class="ag-ticks"></g><path class="ag-arc ag-track" d="M30 150 A120 120 0 0 1 270 150" pathLength="100"/><path class="ag-arc ag-fill" d="M30 150 A120 120 0 0 1 270 150" pathLength="100" stroke-dasharray="0 100"/><g class="ag-needle" style="--a:-90deg;transform:rotate(-90deg)"><polygon points="146,150 154,150 150,40" fill="currentColor"/><line x1="150" y1="150" x2="150" y2="164"/></g><circle class="ag-hub" cx="150" cy="150" r="11"/><circle class="ag-hubi" cx="150" cy="150" r="5"/></svg>
+  <div class="ag-pct">0%</div><div class="ag-msg">Aguardando…</div><div class="ag-meta">Percentual estimado</div><div class="ag-actions"></div>
+ </div>
+</div>
+<script id="aura-loading-gauge-js">
+(function(w,d){
+ 'use strict'; if(w.AuraLoader&&w.AuraLoader.__gauge)return;
+ var root=d.getElementById('aura-loading-gauge'),panel=root.querySelector('.ag-panel'),fill=root.querySelector('.ag-fill'),needle=root.querySelector('.ag-needle'),pct=root.querySelector('.ag-pct'),msg=root.querySelector('.ag-msg'),meta=root.querySelector('.ag-meta'),actions=root.querySelector('.ag-actions'),ticks=root.querySelector('.ag-ticks');
+ for(var i=0;i<=10;i++){var a=(-90+i*18)*Math.PI/180,x1=150+Math.sin(a)*130,y1=150-Math.cos(a)*130,x2=150+Math.sin(a)*(i%5?136:142),y2=150-Math.cos(a)*(i%5?136:142),line=d.createElementNS('http://www.w3.org/2000/svg','line');line.setAttribute('class','ag-tick');line.setAttribute('x1',x1.toFixed(1));line.setAttribute('y1',y1.toFixed(1));line.setAttribute('x2',x2.toFixed(1));line.setAttribute('y2',y2.toFixed(1));ticks.appendChild(line)}
+ var active=0,started=0,timer=0,visibleTimer=0,interval=0,state='run',currentLabel='Carregando conteúdo…',real=false,realPct=0,seq=0,hideAfter=0,groupError='',currentComplete='Processo concluído';
+ function draw(p){p=Math.max(0,Math.min(100,p));fill.setAttribute('stroke-dasharray',p+' 100');var deg=-90+p*1.8;needle.style.setProperty('--a',deg+'deg');needle.style.transform='rotate('+deg+'deg)';pct.textContent=Math.round(p)+'%'}
+ function setState(s,title,detail){state=s;root.dataset.s=s;msg.textContent=title||'';meta.textContent=detail||''}
+ function clearTimers(){clearTimeout(timer);clearTimeout(visibleTimer);clearTimeout(hideAfter);clearInterval(interval);timer=visibleTimer=interval=hideAfter=0}
+ function button(label,fn){var b=d.createElement('button');b.type='button';b.textContent=label;b.addEventListener('click',fn);actions.appendChild(b)}
+ function dismiss(){root.classList.remove('on');actions.textContent='';clearTimers();if(active>0){state='hidden';return}state='idle';real=false;draw(0)}
+ function labelFor(text){text=(text||'').replace(/\s+/g,' ').trim();return text?text.slice(0,90):'Processando sua solicitação…'}
+ function gestureLabel(el){var node=el&&el.closest?el.closest('button,[role="button"],input[type="submit"],input[type="button"],a,[aria-label]'):null;if(!node)return '';return labelFor(node.getAttribute('aria-label')||node.innerText||node.value||node.title||'')}
+ function begin(label,mode){if(active===0){clearTimers();groupError='';started=Date.now();real=false;realPct=0;draw(0);actions.textContent='';setState('run',label||'Carregando conteúdo…','Percentual estimado');root.classList.remove('on');visibleTimer=setTimeout(function(){if(active>0&&state!=='hidden')root.classList.add('on')},220);interval=setInterval(tick,100)}else if(label&&currentLabel==='Carregando conteúdo…'){currentLabel=label;msg.textContent=label}active++;seq++;return seq}
+ function finish(err,immediate){if(err)groupError=groupError||err;active=Math.max(0,active-1);if(active>0)return;if(state==='hidden'){state='idle';clearTimers();return}clearInterval(interval);interval=0;if(groupError){clearTimeout(visibleTimer);root.classList.add('on');actions.textContent='';setState('err','Falha ao concluir o processo',groupError);button('Fechar',dismiss);groupError='';return}real=false;draw(100);if(immediate){setState('ok',currentComplete||'Processo concluído','Tela atualizada');clearTimeout(visibleTimer);root.classList.remove('on');actions.textContent='';clearTimers();state='idle';return}setState('ok',currentComplete||'Processo concluído','Etapa finalizada');clearTimeout(visibleTimer);root.classList.add('on');hideAfter=setTimeout(function(){if(active===0)dismiss()},850)}
+ function tick(){if(!active||state==='hidden')return;var elapsed=Date.now()-started,sec=(elapsed/1000).toFixed(1).replace('.',',');if(!real){var p=elapsed<2000?70*elapsed/2000:70+22*(1-Math.exp(-(elapsed-2000)/4300));draw(Math.min(92,p));meta.textContent='Percentual estimado · '+sec+' s'}else{draw(realPct);meta.textContent=Math.round(realPct)+'% confirmado · '+sec+' s'}if(elapsed>=20000){setState('stuck','Ainda processando',sec+' s · a operação não respondeu no tempo esperado');if(!actions.firstChild)button('Ocultar',dismiss)}else if(elapsed>=8000){setState('slow','Demorando mais que o normal',sec+' s · aguardando resposta');}else if(state==='run'){setState('run',currentLabel,real?'Progresso confirmado':'Percentual estimado · '+sec+' s')}}
+ w.AuraLoader={__gauge:true,start:function(options){options=typeof options==='string'?{message:options}:options||{};if(typeof loginBlocksLoader==='function'&&loginBlocksLoader())return 0;if(active===0){currentLabel=labelFor(options.message||'Processando a ação…');currentComplete=labelFor(options.complete||'Processo concluído')}return begin(currentLabel,'manual')},progress:function(current,total,message){if(active===0)begin(message||'Processando a ação…','manual');real=true;realPct=total>0?Math.max(0,Math.min(100,100*current/total)):0;draw(realPct);if(message)currentLabel=labelFor(message);setState('run',currentLabel,Math.round(realPct)+'% confirmado · '+current+' de '+total)},done:function(message,immediate){if(message)currentComplete=labelFor(message);if(active===0)begin('Finalizando a ação…','manual');finish(null,!!immediate)},fail:function(message){finish(message||'A ação não foi concluída')},markFailure:function(message){if(active>0)groupError=groupError||String(message||'A ação não foi concluída')},wrapAction:function(name,message,complete,condition){var original=w[name];if(typeof original!=='function'||original.__auraProcessWrapped)return false;var wrapped=function(){var self=this,args=arguments;if(condition==='manualBool'&&args[0]!==true)return original.apply(self,args);if(condition==='manualTag'&&args[0]!=='manual')return original.apply(self,args);if(condition==='ean44'&&String(args[0]||'').replace(/\D/g,'').length!==44)return original.apply(self,args);var ticket=w.AuraLoader.start({message:message,complete:complete});var out;try{out=original.apply(self,args)}catch(e){if(ticket)w.AuraLoader.fail(e&&e.message||complete);throw e}if(!ticket)return out;function settle(v){if(v===false||(v&&(v.ok===false||v.success===false))){w.AuraLoader.fail(v.erro||v.error||('Não foi possível concluir: '+complete))}else w.AuraLoader.done()}if(out&&typeof out.then==='function')return Promise.resolve(out).then(function(v){settle(v);return v},function(e){w.AuraLoader.fail(e&&e.message||complete);throw e});settle(out);return out};wrapped.__auraProcessWrapped=true;w[name]=wrapped;return true},__version:'2.0.0'};
+
+ var _auraToastOriginal=w.mostrarToast;if(typeof _auraToastOriginal==='function'&&!_auraToastOriginal.__auraToastObserved){var _auraToastObserved=function(msg,type){if(active>0&&/^(err|error)$/i.test(String(type||'')))groupError=groupError||String(msg||'Falha informada pela aplicação');return _auraToastOriginal.apply(this,arguments)};_auraToastObserved.__auraToastObserved=true;w.mostrarToast=_auraToastObserved}
+ draw(0);
+})(window,document);</script>
+
+<script id="aura-process-loader-hooks">
+(function(){if(!window.AuraLoader)return;var ops=[["adicionarProduto", "Cadastrando o produto…", "Produto cadastrado"], ["registrarEntrada", "Registrando a entrada…", "Entrada registrada"], ["registrarBaixa", "Registrando a baixa…", "Baixa registrada"], ["editarValidade", "Salvando a nova validade…", "Validade atualizada"], ["corrigirSaldo", "Corrigindo o saldo…", "Saldo corrigido"], ["editarProduto", "Salvando as alterações do produto…", "Produto atualizado"], ["salvarPreco", "Salvando o preço…", "Preço atualizado"], ["estornarItemHistorico", "Estornando o lançamento…", "Lançamento estornado"]];ops.forEach(function(x){window.AuraLoader.wrapAction(x[0],x[1],x[2],x[3])});})();
 </script>
 </body></html>
