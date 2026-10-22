@@ -199,8 +199,8 @@ tr:hover td{background:var(--bg3);}
 .loading{color:var(--text2);font-size:13px;padding:20px 0;}
 
 /* ===== Cards de produto/lote (compacto) ===== */
-#estoque-cards{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;align-items:start;}
-.produto-group{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;}
+#estoque-cards{column-count:3;column-gap:10px;}
+.produto-group{display:inline-block;width:100%;margin:0 0 10px;vertical-align:top;break-inside:avoid;page-break-inside:avoid;background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;}
 .produto-header{display:flex;align-items:center;gap:10px;padding:10px 0 10px 10px;background:var(--bg3);border-bottom:1px solid var(--border);}
 .produto-foto{width:86px;min-width:86px;height:86px;object-fit:cover;border:none;border-radius:10px;}
 .produto-icone{width:86px;min-width:86px;height:86px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:32px;}
@@ -376,7 +376,7 @@ tr:hover td{background:rgba(255,255,255,.025);}
   .escudo-syncbar{margin:0 -16px 14px;padding:5px 16px;}
   .tabs{margin:0 -16px 16px;padding:0 10px;}
   .cards{grid-template-columns:repeat(2,1fr)!important;}
-  #estoque-cards{grid-template-columns:repeat(2,1fr)!important;}
+  #estoque-cards{column-count:2!important;}
   .frow3{grid-template-columns:1fr 1fr;}
 }
 @media(max-width:620px){
@@ -389,7 +389,7 @@ tr:hover td{background:rgba(255,255,255,.025);}
   .cards{grid-template-columns:1fr 1fr!important;gap:7px;}
   .card-m{padding:11px 12px;}
   .card-m .val{font-size:22px;}
-  #estoque-cards{grid-template-columns:1fr!important;}
+  #estoque-cards{column-count:1!important;}
   .frow2,.frow3{grid-template-columns:1fr;}
   .tab{padding:11px 12px;font-size:11.5px;}
   .login-card{padding:32px 20px 28px;}
@@ -616,7 +616,6 @@ tr:hover td{background:rgba(255,255,255,.025);}
         <select id="hist-f-tipo" onchange="renderHistorico()">
           <option value="">Todos</option>
           <option value="entrada">Entrada</option>
-          <option value="conversao">Conversão de embalagem</option>
           <option value="baixa">Baixa</option>
           <option value="estorno">Estorno</option>
         </select>
@@ -653,7 +652,7 @@ tr:hover td{background:rgba(255,255,255,.025);}
 </div>
 
 <script>
-const ESCUDO_FRIOS_BUILD='v43-reversao-estorno-conversao-nfe';
+const ESCUDO_FRIOS_BUILD='v41-baixa-negativa-controlada';
 console.info('[Escudo Frios]',ESCUDO_FRIOS_BUILD);
 
 const PRODUTOS_BASE=[
@@ -1651,27 +1650,15 @@ function renderHistorico(){
     const prod=estoque.find(p=>p.codigo===r.codigo);
     const und=prod?(prod.unidade||'kg'):'kg';
     const ehEstorno=r.tipo==='estorno';
-    const ehConversao=r.tipo==='conversao';
-    const ehEntradaNF=r.tipo==='entrada' && /(nf\s*[- ]?e|nfe|nota fiscal)/i.test(String(r.origem||''));
-    const originalDoEstorno=ehEstorno && r.tipoOriginal==='entrada' ? historico.find(h=>String(h.id||'')===String(r.estornoDe||'')) : null;
-    const ehEstornoEntradaNFe=!!(originalDoEstorno && /(nf\s*[- ]?e|nfe|nota fiscal)/i.test(String(originalDoEstorno.origem||'')));
-    const conversaoAplicada=r.tipo==='entrada' && historico.some(h=>h.tipo==='conversao' && String(h.conversaoDe||'')===String(r.id||''));
-    const reversaoAplicada=ehEstorno && historico.some(h=>h.tipo==='conversao' && String(h.estornoDe||'')===String(r.id||''));
-    const classe=ehEstorno?'b-zero':((ehConversao||r.tipo==='entrada')?'b-entry':'b-baixa');
-    const rotulo=ehEstorno?'Estorno':(ehConversao?'Conversão NF-e':(r.tipo==='entrada'?'Entrada':'Baixa'));
+    const classe=ehEstorno?'b-zero':(r.tipo==='entrada'?'b-entry':'b-baixa');
+    const rotulo=ehEstorno?'Estorno':(r.tipo==='entrada'?'Entrada':'Baixa');
     let sinal=r.tipo==='entrada'?'+':'-';
     if(ehEstorno) sinal=r.tipoOriginal==='baixa'?'+':'-';
-    if(ehConversao) sinal=Number(r.conversaoDelta)>=0?'+':'−';
-    const cor=ehEstorno?'var(--red)':((ehConversao||r.tipo==='entrada')?'var(--green)':'var(--yellow)');
-    const podeEstornar=!ehEstorno && !ehConversao && !r.estornado && !conversaoAplicada;
-    let acao='';
-    if(ehConversao) acao='<span style="font-size:11px;color:var(--text3);">Registro vinculado</span>';
-    else if(conversaoAplicada) acao='<span style="font-size:11px;color:var(--green);">Conversão aplicada</span>';
-    else if(ehEstornoEntradaNFe && !reversaoAplicada) acao=`<button class="btn-sm" style="background:rgba(74,140,232,.12);color:#79aef5;border-color:rgba(74,140,232,.45);margin:0;" title="Restaurar a entrada estornada e converter pacotes para kg" onclick="reverterEstornoConverterNFe(${idxReal})"><i class="ti ti-arrow-back-up"></i> Reverter e converter NF-e</button>`;
-    else if(reversaoAplicada) acao='<span style="font-size:11px;color:var(--green);">Entrada restaurada</span>';
-    else if(ehEntradaNF && !r.estornado) acao=`<button class="btn-sm" style="background:rgba(74,140,232,.12);color:#79aef5;border-color:rgba(74,140,232,.45);margin:0;" title="Aplicar fator kg por pacote mantendo a entrada original" onclick="converterEntradaNFe(${idxReal})"><i class="ti ti-arrows-exchange"></i> Converter embalagem</button>`;
-    else if(podeEstornar) acao=`<button class="btn-sm" style="background:var(--red-bg);color:var(--red-text);border-color:#5a2a2a;margin:0;" onclick="estornarItemHistorico(${idxReal})"><i class="ti ti-arrow-back-up"></i> Estornar</button>`;
-    else acao=`<span style="font-size:11px;color:var(--text3);">${r.estornado?'Estornado':'—'}</span>`;
+    const cor=ehEstorno?'var(--red)':(r.tipo==='entrada'?'var(--green)':'var(--yellow)');
+    const podeEstornar=!ehEstorno && !r.estornado;
+    const acao=podeEstornar
+      ? `<button class="btn-sm" style="background:var(--red-bg);color:var(--red-text);border-color:#5a2a2a;margin:0;" onclick="estornarItemHistorico(${idxReal})"><i class="ti ti-arrow-back-up"></i> Estornar</button>`
+      : `<span style="font-size:11px;color:var(--text3);">${r.estornado?'Estornado':'—'}</span>`;
     return `<tr>
       <td style="font-size:12px;color:var(--text2);">${fmtHora(r.ts)}</td>
       <td style="font-weight:600;">${r.nome}</td>
@@ -1692,47 +1679,9 @@ function limparFiltrosHistorico(){
   renderHistorico();
 }
 
-async function converterEntradaNFe(idx){
-  const mov=historico[idx];
-  if(!mov||mov.tipo!=='entrada'||mov.estornado)return;
-  const pacotes=Math.abs(Number(mov.peso)||0);
-  if(!(pacotes>0))return alert('A entrada original não possui quantidade válida.');
-  const valor=prompt(`Quantos kg pesa cada pacote desta NF-e?\n\nQuantidade original: ${pacotes.toFixed(3)} pacotes`, '2,8');
-  if(valor===null)return;
-  const fator=Number(String(valor).trim().replace(',','.'));
-  if(!Number.isFinite(fator)||fator<=0)return alert('Informe um peso positivo em kg por pacote.');
-  const convertido=Math.round(pacotes*fator*1000)/1000;
-  const diferenca=Math.round((convertido-pacotes)*1000)/1000;
-  const aplicar=diferenca>=0?`somar ${diferenca.toFixed(3)} kg ao lote`:`retirar ${Math.abs(diferenca).toFixed(3)} kg do lote`;
-  if(!confirm(`${pacotes.toFixed(3)} pacotes × ${fator.toFixed(3)} kg = ${convertido.toFixed(3)} kg.\n\nO Escudo vai ${aplicar} da entrada original. A movimentação da NF-e será preservada e a conversão ficará registrada uma única vez. Continuar?`))return;
-  try{
-    const dados=await apiPostAcao('converterEntradaPacotes',{id:String(mov.id||''),kgPorPacote:fator,resp:usuarioAtual()});
-    alert(`Conversão registrada: ${Number(dados.quantidadeBase||pacotes).toFixed(3)} pacotes × ${Number(dados.fator||fator).toFixed(3)} kg = ${Number(dados.quantidadeConvertida||convertido).toFixed(3)} kg.\nDiferença aplicada: ${Number(dados.delta||diferenca)>=0?'+':''}${Number(dados.delta||diferenca).toFixed(3)} kg. A entrada original foi preservada.`);
-  }catch(e){alert('Não foi possível converter a entrada: '+e.message);}
-}
-
-async function reverterEstornoConverterNFe(idx){
-  const estorno=historico[idx];
-  if(!estorno||estorno.tipo!=='estorno'||estorno.tipoOriginal!=='entrada')return;
-  const original=historico.find(h=>String(h.id||'')===String(estorno.estornoDe||''));
-  if(!original)return alert('Não encontrei a entrada original vinculada a este estorno.');
-  const pacotes=Math.abs(Number(original.peso)||0);
-  if(!(pacotes>0))return alert('A entrada original não possui quantidade válida.');
-  const valor=prompt(`Quantos kg pesa cada pacote desta NF-e?\n\nQuantidade original: ${pacotes.toFixed(3)} pacotes`, '2,8');
-  if(valor===null)return;
-  const fator=Number(String(valor).trim().replace(',','.'));
-  if(!Number.isFinite(fator)||fator<=0)return alert('Informe um peso positivo em kg por pacote.');
-  const convertido=Math.round(pacotes*fator*1000)/1000;
-  if(!confirm(`A entrada original de ${pacotes.toFixed(3)} pacotes foi estornada.\n\nO sistema vai adicionar ${convertido.toFixed(3)} kg ao lote da mesma NF-e (${pacotes.toFixed(3)} × ${fator.toFixed(3)}).\n\nO lançamento original e o estorno serão preservados, e esta restauração poderá ser aplicada uma única vez. Continuar?`))return;
-  try{
-    const dados=await apiPostAcao('reverterEstornoConverterPacotes',{id:String(estorno.id||''),kgPorPacote:fator,resp:usuarioAtual()});
-    alert(`Estorno preservado e entrada restaurada: ${Number(dados.quantidadeBase||pacotes).toFixed(3)} pacotes × ${Number(dados.fator||fator).toFixed(3)} kg = ${Number(dados.quantidadeConvertida||convertido).toFixed(3)} kg adicionados ao lote.`);
-  }catch(e){alert('Não foi possível reverter e converter a NF-e: '+e.message);}
-}
-
 async function estornarItemHistorico(idx){
   const mov=historico[idx];
-  if(!mov||mov.tipo==='estorno'||mov.tipo==='conversao'||mov.estornado)return;
+  if(!mov||mov.tipo==='estorno'||mov.estornado)return;
   const peso=Math.abs(Number(mov.peso)||0);
   if(peso<=0)return alert('Esta movimentação não possui quantidade válida para estorno.');
   const prod=estoque.find(p=>String(p.codigo)===String(mov.codigo));
@@ -1763,10 +1712,9 @@ function exportarRelatorio(){
   [...historico].reverse().forEach(r=>{
     const prod=estoque.find(p=>p.codigo===r.codigo);
     const und=prod?(prod.unidade||'kg'):'kg';
-    const tipoTxt=r.tipo==='estorno'?'Estorno':(r.tipo==='conversao'?'Conversão NF-e':(r.tipo==='entrada'?'Entrada':'Baixa'));
+    const tipoTxt=r.tipo==='estorno'?'Estorno':(r.tipo==='entrada'?'Entrada':'Baixa');
     let sinal=r.tipo==='entrada'?'+':'-';
     if(r.tipo==='estorno') sinal=r.tipoOriginal==='baixa'?'+':'-';
-    if(r.tipo==='conversao') sinal=Number(r.conversaoDelta)>=0?'+':'−';
     txt+=fmtHora(r.ts)+'|'+r.nome+'|'+tipoTxt+'|'+sinal+Math.abs(Number(r.peso)||0).toFixed(3)+' '+und+'|'+Number(r.saldoApos||0).toFixed(3)+' '+und+'|'+(r.resp||'—')+'\n';
   });
   const blob=new Blob([txt],{type:'text/plain;charset=utf-8'});
@@ -1922,6 +1870,6 @@ setInterval(atualizarRelogio,60000);
 })(window,document);</script>
 
 <script id="aura-process-loader-hooks">
-(function(){if(!window.AuraLoader)return;var ops=[["adicionarProduto", "Cadastrando o produto…", "Produto cadastrado"], ["registrarEntrada", "Registrando a entrada…", "Entrada registrada"], ["converterEntradaNFe", "Convertendo o peso dos pacotes da NF-e…", "Conversão da NF-e registrada"], ["reverterEstornoConverterNFe", "Restaurando e convertendo a entrada da NF-e…", "Entrada restaurada"], ["registrarBaixa", "Registrando a baixa…", "Baixa registrada"], ["editarValidade", "Salvando a nova validade…", "Validade atualizada"], ["corrigirSaldo", "Corrigindo o saldo…", "Saldo corrigido"], ["editarProduto", "Salvando as alterações do produto…", "Produto atualizado"], ["salvarPreco", "Salvando o preço…", "Preço atualizado"], ["estornarItemHistorico", "Estornando o lançamento…", "Lançamento estornado"]];ops.forEach(function(x){window.AuraLoader.wrapAction(x[0],x[1],x[2],x[3])});})();
+(function(){if(!window.AuraLoader)return;var ops=[["adicionarProduto", "Cadastrando o produto…", "Produto cadastrado"], ["registrarEntrada", "Registrando a entrada…", "Entrada registrada"], ["registrarBaixa", "Registrando a baixa…", "Baixa registrada"], ["editarValidade", "Salvando a nova validade…", "Validade atualizada"], ["corrigirSaldo", "Corrigindo o saldo…", "Saldo corrigido"], ["editarProduto", "Salvando as alterações do produto…", "Produto atualizado"], ["salvarPreco", "Salvando o preço…", "Preço atualizado"], ["estornarItemHistorico", "Estornando o lançamento…", "Lançamento estornado"]];ops.forEach(function(x){window.AuraLoader.wrapAction(x[0],x[1],x[2],x[3])});})();
 </script>
 </body></html>
