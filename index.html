@@ -1,6 +1,7 @@
 <html><head>
 <title>Escudo Padaria · Estoque de Frios</title>
-<!-- Build v42.8: badge negativo no produto + últimos 3 lotes -->
+<!-- Build v42.9: alinhamento dos campos dos lotes -->
+<!-- Build v42.9: campos dos lotes alinhados -->
 <!-- Build v42.7: cards crescem com os lotes, sem rolagem interna --><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
 <link rel="icon" type="image/png" href="escudo_padaria_aura_logo.png">
 <link rel="stylesheet" href="https://unpkg.com/@tabler/icons-webfont@3.10.0/dist/tabler-icons.min.css">
@@ -449,6 +450,29 @@ tr:hover td{background:rgba(255,255,255,.025);}
   .produto-group { height: auto; min-height: 0; }
   .lote-cards { overflow: visible; }
 }
+
+
+/* Escudo v42.9 — rótulos e valores dos lotes em colunas legíveis */
+.lote-info .li-row {
+  display: grid !important;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: baseline;
+  gap: 4px;
+  flex-wrap: nowrap;
+}
+.lote-info .li-row .li-label {
+  min-width: 0;
+  color: var(--text2) !important;
+  white-space: nowrap;
+}
+.lote-info .li-row > span:last-child {
+  min-width: 0;
+  color: var(--text) !important;
+  text-align: right;
+  white-space: nowrap;
+}
+.lote-top { min-height: 20px; flex-wrap: nowrap; }
+.lote-qtd { white-space: nowrap; }
 
 </style>
 
