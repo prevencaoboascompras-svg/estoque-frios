@@ -1158,6 +1158,15 @@ function _marcarLoteAtualizado_(lote){
   if(lote) lote.atualizadoEm=Date.now();
 }
 
+const ESCUDO_AURA_GAS_URL='https://script.google.com/macros/s/AKfycbwjsogX93Xxfb5jyFy1IqknZ7lk2OOaOOG_oOhpGdKETgZgIkTrZOBY36_UzS35Ns8s/exec';
+const _escudoFotoAuraCache={};
+function escudoFotoAura_(ean,nome,imgId){
+  ean=String(ean||'').replace(/\D/g,'');if(!ean)return;var cacheKey=ean+'|'+String(nome||'').toLowerCase();if(_escudoFotoAuraCache[cacheKey]){var im=document.getElementById(imgId);if(im)im.src=_escudoFotoAuraCache[cacheKey];return;}
+  var cb='__escudoAuraFoto_'+Date.now()+'_'+Math.random().toString(36).slice(2),sc=document.createElement('script'),done=false,timer;
+  function finish(j){if(done)return;done=true;clearTimeout(timer);try{delete window[cb];}catch(e){window[cb]=undefined;}if(sc.parentNode)sc.parentNode.removeChild(sc);if(!j||!j.ok||!j.encontrado)return;var src=j.base64?'data:'+(j.mimeType||'image/jpeg')+';base64,'+j.base64:(j.dataUrl||j.url||j.imageUrl||'');if(!src)return;_escudoFotoAuraCache[cacheKey]=src;var im=document.getElementById(imgId);if(im)im.src=src;}
+  window[cb]=finish;sc.onerror=function(){finish(null);};sc.src=ESCUDO_AURA_GAS_URL+'?action=buscarImagemProduto&tipo=produto&codigoBarras='+encodeURIComponent(ean)+'&nomeProduto='+encodeURIComponent(nome||'')+'&callback='+encodeURIComponent(cb)+'&_='+Date.now();document.head.appendChild(sc);timer=setTimeout(function(){finish(null);},12000);
+}
+
 function toggleLotesDashboard(codigo){
   codigo=String(codigo||'');
   if(_dashboardLotesExpandidos.has(codigo))_dashboardLotesExpandidos.delete(codigo);
@@ -1180,9 +1189,10 @@ function renderEstoque(){
   estoque.forEach((p,i)=>{
     const codigo=String(p.codigo||'');
     if(!grupos[codigo]){
-      grupos[codigo]={codigo,nome:p.nome,unidade:p.unidade||'kg',min:Number(p.min)||0,itens:[]};
+      grupos[codigo]={codigo,nome:p.nome,unidade:p.unidade||'kg',min:Number(p.min)||0,eanAura:String(p.eanAura||''),itens:[]};
       ordem.push(codigo);
     }
+    if(!grupos[codigo].eanAura&&p.eanAura)grupos[codigo].eanAura=String(p.eanAura);
     grupos[codigo].itens.push({...p, idx:i});
   });
 
@@ -1251,9 +1261,11 @@ function renderEstoque(){
 
     const cat=categoriaProduto(g.nome);
     const foto=PRODUTO_IMAGENS[g.codigo];
+    const eanAura=String(g.eanAura||'').replace(/\D/g,'');
+    const fotoId='escudo-produto-foto-'+String(g.codigo).replace(/[^a-zA-Z0-9_-]/g,'_');
     const iconeHtml=foto
-      ? `<img src="${foto}" alt="${g.nome}" class="produto-foto" style="border-color:${cat.cor}66;">`
-      : `<span class="produto-icone" style="background:${cat.cor}22;color:${cat.cor};">${cat.icone}</span>`;
+      ? `<img id="${fotoId}" src="${foto}" alt="${g.nome}" class="produto-foto" style="border-color:${cat.cor}66;">`
+      : (eanAura?`<img id="${fotoId}" src="" alt="${g.nome}" class="produto-foto" style="border-color:${cat.cor}66;" onerror="this.style.display='none';">`:`<span class="produto-icone" style="background:${cat.cor}22;color:${cat.cor};">${cat.icone}</span>`);
 
     const codUrl=encodeURIComponent(String(cod));
     const controleLotes=ocultos>0
@@ -1286,6 +1298,7 @@ function renderEstoque(){
   cont.innerHTML=gruposVisiveis
     ? html
     : '<div class="produto-empty">Nenhum produto cadastrado ainda.</div>';
+  if(gruposVisiveis)ordem.forEach(cod=>{const g=grupos[cod];if(g&&g.eanAura&&!PRODUTO_IMAGENS[g.codigo])escudoFotoAura_(g.eanAura,g.nome,'escudo-produto-foto-'+String(g.codigo).replace(/[^a-zA-Z0-9_-]/g,'_'));});
 }
 async function editarValidade(i){
   const p=estoque[i];
