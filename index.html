@@ -1,5 +1,6 @@
 <html><head>
 <title>Escudo Padaria · Estoque de Frios</title>
+<!-- Build v42.8: badge negativo no produto + últimos 3 lotes -->
 <!-- Build v42.7: cards crescem com os lotes, sem rolagem interna --><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
 <link rel="icon" type="image/png" href="escudo_padaria_aura_logo.png">
 <link rel="stylesheet" href="https://unpkg.com/@tabler/icons-webfont@3.10.0/dist/tabler-icons.min.css">
@@ -1254,11 +1255,10 @@ function renderEstoque(){
       return Number(b.idx)-Number(a.idx);
     };
 
-    // Saldos negativos ficam sempre visíveis para conferência. Dos demais
-    // lotes (positivos ou zerados), o padrão mostra os 3 mais recentes.
-    const negativos=g.itens.filter(it=>Number(it.saldo)<0).sort(porRecencia);
-    const lotesNaoNegativos=g.itens.filter(it=>Number(it.saldo)>=0).sort(porRecencia);
-    const positivos=lotesNaoNegativos.filter(it=>Number(it.saldo)>0);
+    // O card mostra sempre os três lotes mais recentes, independentemente do saldo.
+    // O saldo negativo é sinalizado uma única vez no badge agregado do produto.
+    const lotesOrdenados=g.itens.slice().sort(porRecencia);
+    const negativos=g.itens.filter(it=>Number(it.saldo)<0);
     const total=g.itens.reduce((s,it)=>s+(Number(it.saldo)||0),0);
     gruposVisiveis++;
 
@@ -1269,11 +1269,10 @@ function renderEstoque(){
     else totalBadge='<span class="badge b-ok">OK</span>';
 
     const expandido=_dashboardLotesExpandidos.has(String(cod));
-    const lotesNormaisVisiveis=expandido
-      ? lotesNaoNegativos
-      : lotesNaoNegativos.slice(0,DASH_MAX_LOTES_POR_PRODUTO);
-    const itensVisiveis=[...negativos,...lotesNormaisVisiveis];
-    const ocultos=Math.max(0,lotesNaoNegativos.length-lotesNormaisVisiveis.length);
+    const itensVisiveis=expandido
+      ? lotesOrdenados
+      : lotesOrdenados.slice(0,DASH_MAX_LOTES_POR_PRODUTO);
+    const ocultos=Math.max(0,lotesOrdenados.length-itensVisiveis.length);
 
     const lotesHtml=itensVisiveis.map(it=>{
       const sv=statusVal(it.validade);
@@ -1283,13 +1282,11 @@ function renderEstoque(){
 
       const saldoNum=Number(it.saldo)||0;
       const ehNegativo=saldoNum<0;
-      const qtdBadge=ehNegativo
-        ? '<span class="badge b-zero">NEGATIVO</span>'
-        : (saldoNum===0
-          ? '<span class="badge b-zero">ZERADO</span>'
-          : (saldoNum<g.min?'<span class="badge b-low">Baixo</span>':''));
+      const qtdBadge=saldoNum===0
+        ? '<span class="badge b-zero">ZERADO</span>'
+        : (saldoNum>0&&saldoNum<g.min?'<span class="badge b-low">Baixo</span>':'');
 
-      return`<div class="lote-card"${ehNegativo?' style="border-color:rgba(239,68,68,.72);box-shadow:0 0 0 1px rgba(239,68,68,.16) inset;':''}>
+      return`<div class="lote-card">
         <div class="lote-top">
           <span class="lote-qtd"${ehNegativo?' style="color:var(--red-text);':''}>${saldoNum.toFixed(3)} ${und}</span>
           ${qtdBadge}
