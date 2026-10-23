@@ -1,6 +1,6 @@
 <html><head>
 <title>Escudo Padaria · Estoque de Frios</title>
-<!-- Build v42.6: layout para aproveitar a tela ampla --><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<!-- Build v42.7: cards crescem com os lotes, sem rolagem interna --><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
 <link rel="icon" type="image/png" href="escudo_padaria_aura_logo.png">
 <link rel="stylesheet" href="https://unpkg.com/@tabler/icons-webfont@3.10.0/dist/tabler-icons.min.css">
 
@@ -423,6 +423,30 @@ tr:hover td{background:rgba(255,255,255,.025);}
   .produto-group { height: 280px; }
   .lote-info { font-size: 11.5px; }
   .lote-actions .btn-sm { padding: 2px 7px; }
+}
+
+
+/* Escudo v42.7 — cards crescem com os lotes, sem rolagem dentro do produto */
+#estoque-cards { align-items: stretch; }
+.produto-group { height: auto; min-height: 280px; overflow: hidden; }
+.produto-header { flex: 0 0 auto; }
+.lote-cards {
+  flex: 0 0 auto;
+  min-height: 0;
+  overflow: visible;
+  align-content: start;
+}
+.lote-card { min-width: 0; height: auto; overflow: hidden; }
+.lote-info .li-row { align-items: flex-start; flex-wrap: wrap; }
+.lote-info .li-row span:last-child { min-width: 0; text-align: right; overflow-wrap: anywhere; }
+.lotes-ocultos-info { flex: 0 0 auto; }
+@media (min-width: 901px) {
+  #estoque-cards { grid-template-columns: repeat(3, minmax(0, 1fr)); align-items: stretch; }
+  .lote-cards { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+@media (max-width: 900px) {
+  .produto-group { height: auto; min-height: 0; }
+  .lote-cards { overflow: visible; }
 }
 
 </style>
