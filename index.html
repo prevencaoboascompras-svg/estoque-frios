@@ -3,7 +3,7 @@
 <link rel="preconnect" href="https://unpkg.com">
 
 <title>Escudo Padaria · Estoque de Frios</title>
-<!-- Build v42.9: alinhamento dos campos dos lotes -->
+<!-- Build v43.1: conversão NF-e vinculada à entrada original -->
 <!-- Build v42.9: campos dos lotes alinhados -->
 <!-- Build v42.7: cards crescem com os lotes, sem rolagem interna --><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
 <link rel="icon" type="image/png" href="escudo_padaria_aura_logo.png">
@@ -732,7 +732,7 @@ tr:hover td{background:rgba(255,255,255,.025);}
 </div>
 
 <script>
-const ESCUDO_FRIOS_BUILD='v41-baixa-negativa-controlada';
+const ESCUDO_FRIOS_BUILD='v43.1-conversao-nfe-mesma-linha';
 console.info('[Escudo Frios]',ESCUDO_FRIOS_BUILD);
 
 const PRODUTOS_BASE=[
@@ -1699,62 +1699,51 @@ function escapeHtml_(valor){
     .replace(/'/g,'&#039;');
 }
 
+function historicoConversoesPorEntrada_(){
+  const map={};
+  (historico||[]).forEach(m=>{if(m&&m.tipo==='conversao'&&m.conversaoDe)map[String(m.conversaoDe)]=m;});
+  return map;
+}
 function renderHistorico(){
   const tb=document.getElementById('tbody-historico');
   if(!tb)return;
-
-  if(historicoCarregando&&!historico.length){
-    tb.innerHTML='<tr><td colspan="7" style="text-align:center;color:var(--text2);padding:24px 0;"><i class="ti ti-loader-2"></i> Carregando histórico...</td></tr>';
-    return;
-  }
-
-  if(historicoErro&&!historico.length){
-    tb.innerHTML='<tr><td colspan="7" style="text-align:center;color:var(--red-text);padding:24px 12px;">Falha ao carregar histórico.<br><span style="font-size:11px;color:var(--text3);">'+escapeHtml_(historicoErro)+'</span><br><button class="btn-sm" style="margin-top:10px;" onclick="carregarHistoricoCompleto(true)"><i class="ti ti-refresh"></i> Tentar novamente</button></td></tr>';
-    return;
-  }
-
+  if(historicoCarregando&&!historico.length){tb.innerHTML='<tr><td colspan="7" style="text-align:center;color:var(--text2);padding:24px 0;"><i class="ti ti-loader-2"></i> Carregando histórico...</td></tr>';return;}
+  if(historicoErro&&!historico.length){tb.innerHTML='<tr><td colspan="7" style="text-align:center;color:var(--red-text);padding:24px 12px;">Falha ao carregar histórico.<br><span style="font-size:11px;color:var(--text3);">'+escapeHtml_(historicoErro)+'</span><br><button class="btn-sm" style="margin-top:10px;" onclick="carregarHistoricoCompleto(true)"><i class="ti ti-refresh"></i> Tentar novamente</button></td></tr>';return;}
   const fProduto=(document.getElementById('hist-f-produto')?.value||'').trim().toLowerCase();
   const fTipo=document.getElementById('hist-f-tipo')?.value||'';
   const fDe=document.getElementById('hist-f-de')?.value||'';
   const fAte=document.getElementById('hist-f-ate')?.value||'';
-
-  let rows=[...historico].map((r,idxReal)=>({...r,idxReal})).reverse();
-
-  if(fProduto) rows=rows.filter(r=>(r.nome||'').toLowerCase().includes(fProduto));
-  if(fTipo) rows=rows.filter(r=>r.tipo===fTipo);
-  if(fDe){
-    const de=new Date(fDe+'T00:00:00');
-    rows=rows.filter(r=>new Date(r.ts)>=de);
-  }
-  if(fAte){
-    const ate=new Date(fAte+'T23:59:59');
-    rows=rows.filter(r=>new Date(r.ts)<=ate);
-  }
-
+  const conversoes=historicoConversoesPorEntrada_();
+  let rows=[...historico].map((r,idxReal)=>({...r,idxReal,_conversao:conversoes[String(r.id||'')]||null})).reverse();
+  // A conversão fica visualmente anexada à entrada original; não vira uma segunda movimentação.
+  rows=rows.filter(r=>!(r.tipo==='conversao'&&r.conversaoDe&&historico.some(x=>String(x.id||'')===String(r.conversaoDe))));
+  if(fProduto)rows=rows.filter(r=>(r.nome||'').toLowerCase().includes(fProduto));
+  if(fTipo)rows=rows.filter(r=>r.tipo===fTipo||(fTipo==='entrada'&&!!r._conversao));
+  if(fDe){const de=new Date(fDe+'T00:00:00');rows=rows.filter(r=>new Date(r.ts)>=de);}
+  if(fAte){const ate=new Date(fAte+'T23:59:59');rows=rows.filter(r=>new Date(r.ts)<=ate);}
   if(!historico.length){tb.innerHTML='<tr><td colspan="7" style="text-align:center;color:var(--text3);padding:24px 0;">Nenhuma movimentação</td></tr>';return;}
   if(!rows.length){tb.innerHTML='<tr><td colspan="7" style="text-align:center;color:var(--text3);padding:24px 0;">Nenhum resultado para os filtros aplicados</td></tr>';return;}
-
   tb.innerHTML=rows.map(r=>{
-    const idxReal=r.idxReal;
-    const prod=estoque.find(p=>p.codigo===r.codigo);
-    const und=prod?(prod.unidade||'kg'):'kg';
-    const ehEstorno=r.tipo==='estorno';
-    const classe=ehEstorno?'b-zero':(r.tipo==='entrada'?'b-entry':'b-baixa');
-    const rotulo=ehEstorno?'Estorno':(r.tipo==='entrada'?'Entrada':'Baixa');
-    let sinal=r.tipo==='entrada'?'+':'-';
-    if(ehEstorno) sinal=r.tipoOriginal==='baixa'?'+':'-';
-    const cor=ehEstorno?'var(--red)':(r.tipo==='entrada'?'var(--green)':'var(--yellow)');
-    const podeEstornar=!ehEstorno && !r.estornado;
-    const acao=podeEstornar
-      ? `<button class="btn-sm" style="background:var(--red-bg);color:var(--red-text);border-color:#5a2a2a;margin:0;" onclick="estornarItemHistorico(${idxReal})"><i class="ti ti-arrow-back-up"></i> Estornar</button>`
-      : `<span style="font-size:11px;color:var(--text3);">${r.estornado?'Estornado':'—'}</span>`;
+    const idxReal=r.idxReal,prod=estoque.find(p=>p.codigo===r.codigo),und=prod?(prod.unidade||'kg'):'kg';
+    const ehEstorno=r.tipo==='estorno',conv=r._conversao,ehConversao=!!conv;
+    const qtd=ehConversao?(Number(conv.quantidadeConvertida)||Math.abs(Number(r.peso)||0)+Number(conv.conversaoDelta||0)):Math.abs(Number(r.peso)||0);
+    const classe=ehEstorno?'b-zero':'b-entry';
+    const rotulo=ehEstorno?'Estorno':ehConversao?'Entrada NF-e convertida':(r.tipo==='entrada'?'Entrada':'Baixa');
+    let sinal=(r.tipo==='entrada'||ehConversao)?'+':'-';if(ehEstorno)sinal=r.tipoOriginal==='baixa'?'+':'-';
+    const cor=ehEstorno?'var(--red)':((r.tipo==='entrada'||ehConversao)?'var(--green)':'var(--yellow)');
+    const podeEstornar=!ehEstorno&&!r.estornado&&!ehConversao;
+    const origemNfe=/nfe|nf\s*[- ]?e|nota fiscal/i.test(String(r.origem||''));
+    const podeConverter=r.tipo==='entrada'&&origemNfe&&!ehConversao&&!r.estornado;
+    const botaoConverter=podeConverter?`<button class="btn-sm" style="background:rgba(25,168,126,.12);color:#72e2bd;border-color:rgba(25,168,126,.45);margin:0 0 4px;" onclick="converterEntradaPacotesHistorico(${idxReal})"><i class="ti ti-scale"></i> Converter para kg</button>`:'';
+    const acao=botaoConverter+(podeEstornar?`<button class="btn-sm" style="background:var(--red-bg);color:var(--red-text);border-color:#5a2a2a;margin:0;" onclick="estornarItemHistorico(${idxReal})"><i class="ti ti-arrow-back-up"></i> Estornar</button>`:ehConversao?'<span style="font-size:10px;color:var(--text3);">Conversão vinculada</span>':`<span style="font-size:11px;color:var(--text3);">${r.estornado?'Estornado':'—'}</span>`);
+    const detalhe=ehConversao?`<div style="font-size:10px;color:var(--text2);margin-top:3px;max-width:360px;white-space:normal;line-height:1.35;">${escapeHtml_(conv.quantidadeBase||r.peso)} × ${escapeHtml_(Number(conv.fatorConversao||0).toLocaleString('pt-BR'))} kg = ${escapeHtml_(qtd.toLocaleString('pt-BR'))} kg · convertido ${fmtHora(conv.ts)}</div>`:'';
     return `<tr>
       <td style="font-size:12px;color:var(--text2);">${fmtHora(r.ts)}</td>
-      <td style="font-weight:600;">${r.nome}</td>
+      <td style="font-weight:600;">${escapeHtml_(r.nome||'')}${detalhe}</td>
       <td><span class="badge ${classe}">${rotulo}</span></td>
-      <td style="font-weight:600;color:${cor};">${sinal}${Math.abs(Number(r.peso)||0).toFixed(3)}</td>
-      <td>${Number(r.saldoApos||0).toFixed(3)} ${und}</td>
-      <td style="color:var(--text2);">${r.resp||'—'}</td>
+      <td style="font-weight:600;color:${cor};">${sinal}${qtd.toFixed(3)}</td>
+      <td>${Number(conv?conv.saldoApos:r.saldoApos||0).toFixed(3)} ${und}</td>
+      <td style="color:var(--text2);">${escapeHtml_(r.resp||'—')}${ehConversao?'<div style="font-size:10px;color:var(--text3);">Conversão: '+escapeHtml_(conv.resp||'AURA')+'</div>':''}</td>
       <td>${acao}</td>
     </tr>`;
   }).join('');
@@ -1766,6 +1755,20 @@ function limparFiltrosHistorico(){
   document.getElementById('hist-f-de').value='';
   document.getElementById('hist-f-ate').value='';
   renderHistorico();
+}
+
+async function converterEntradaPacotesHistorico(idx){
+  const mov=historico[idx];if(!mov||mov.tipo!=='entrada'||mov.estornado)return;
+  if(!/nfe|nf\s*[- ]?e|nota fiscal/i.test(String(mov.origem||'')))return alert('A conversão só pode ser aplicada a uma entrada vinculada a NF-e.');
+  const prod=estoque.find(p=>String(p.codigo)===String(mov.codigo)),und=prod?(prod.unidade||'kg'):'kg';
+  if(String(und).toLowerCase()!=='kg')return alert('Este produto não está controlado em kg no Escudo.');
+  const nome=String(mov.nome||'').toUpperCase().replace(/,/g,'.'),m=nome.match(/(?:^|[^0-9])(\d+(?:\.\d+)?)\s*KG(?:\b|$)/),sugerido=m&&Number(m[1])>0?String(Number(m[1])):'';
+  const entrada=Math.abs(Number(mov.peso)||0),raw=prompt('Quantos kg pesa cada pacote desta entrada?',sugerido);if(raw===null)return;
+  const fator=Number(String(raw).replace(',','.'));if(!(fator>0))return alert('Informe um peso maior que zero.');
+  const convertido=entrada*fator;
+  if(!confirm(`Converter a entrada original sem criar outra entrada?\n\n${entrada.toLocaleString('pt-BR')} pacotes × ${fator.toLocaleString('pt-BR')} kg = ${convertido.toLocaleString('pt-BR')} kg\n\nO histórico exibirá a conversão junto da linha original.`))return;
+  try{const r=await apiPostAcao('converterEntradaPacotes',{id:String(mov.id||''),kgPorPacote:fator,resp:usuarioAtual()});alert((r.mensagem||'Conversão aplicada.')+'\nSaldo atual: '+Number(r.saldoApos||0).toLocaleString('pt-BR')+' '+und+'.');await carregar();}
+  catch(e){alert('Não foi possível converter a entrada: '+e.message);}
 }
 
 async function estornarItemHistorico(idx){
@@ -1798,13 +1801,14 @@ function exportarRelatorio(){
   });
   txt+='\nHISTÓRICO DE MOVIMENTAÇÕES\n\n';
   txt+='Data/Hora|Produto|Tipo|Quantidade|Saldo após|Responsável\n';
-  [...historico].reverse().forEach(r=>{
-    const prod=estoque.find(p=>p.codigo===r.codigo);
-    const und=prod?(prod.unidade||'kg'):'kg';
-    const tipoTxt=r.tipo==='estorno'?'Estorno':(r.tipo==='entrada'?'Entrada':'Baixa');
-    let sinal=r.tipo==='entrada'?'+':'-';
-    if(r.tipo==='estorno') sinal=r.tipoOriginal==='baixa'?'+':'-';
-    txt+=fmtHora(r.ts)+'|'+r.nome+'|'+tipoTxt+'|'+sinal+Math.abs(Number(r.peso)||0).toFixed(3)+' '+und+'|'+Number(r.saldoApos||0).toFixed(3)+' '+und+'|'+(r.resp||'—')+'\n';
+  const convMap=historicoConversoesPorEntrada_();
+  [...historico].filter(r=>!(r.tipo==='conversao'&&r.conversaoDe&&historico.some(x=>String(x.id||'')===String(r.conversaoDe)))).reverse().forEach(r=>{
+    const prod=estoque.find(p=>p.codigo===r.codigo),und=prod?(prod.unidade||'kg'):'kg',conv=convMap[String(r.id||'')];
+    const tipoTxt=r.tipo==='estorno'?'Estorno':conv?'Entrada NF-e convertida':(r.tipo==='entrada'?'Entrada':'Baixa');
+    let qtd=conv?(Number(conv.quantidadeConvertida)||Math.abs(Number(r.peso)||0)+Number(conv.conversaoDelta||0)):Math.abs(Number(r.peso)||0),sinal=(r.tipo==='entrada'||conv)?'+':'-';
+    if(r.tipo==='estorno')sinal=r.tipoOriginal==='baixa'?'+':'-';
+    const detalhe=conv?' · '+Number(conv.quantidadeBase||r.peso).toFixed(3)+' × '+Number(conv.fatorConversao||0).toLocaleString('pt-BR')+' = '+qtd.toFixed(3)+' kg':'';
+    txt+=fmtHora(r.ts)+'|'+r.nome+'|'+tipoTxt+detalhe+'|'+sinal+qtd.toFixed(3)+' '+und+'|'+Number(conv?conv.saldoApos:r.saldoApos||0).toFixed(3)+' '+und+'|'+(r.resp||'—')+'\n';
   });
   const blob=new Blob([txt],{type:'text/plain;charset=utf-8'});
   const a=document.createElement('a');
